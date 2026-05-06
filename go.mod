@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/c-robinson/iplib v1.0.8
+	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/disintegration/imaging v1.6.2
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/gofiber/contrib/fiberzerolog v1.0.3
@@ -11,6 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/rs/zerolog v1.35.1
+	golang.org/x/crypto v0.48.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
