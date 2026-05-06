@@ -3,11 +3,15 @@
 /bin
 
 # local env file
-# .env
-# .env.yml
+.env
+.env.yml
 
-# model.json
-# CLAUDE.md
-# Makefile
-# .claude/*
-# webdata/*
+model.json
+CLAUDE.md
+Makefile
+.claude/*
+webdata/*
+
+
+api_postman_collections.json
+go-basic.sql
