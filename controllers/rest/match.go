@@ -3,6 +3,7 @@ package rest
 
 import (
 	"fotstat/controllers"
+	
 	"fotstat/models"
 
     "strings"
@@ -188,6 +189,8 @@ func (c *MatchController) Count() {
 func (c *MatchController) Insert(item *models.Match) {
     
     
+    
+
 	conn := c.NewConnection()
     
 	manager := models.NewMatchManager(conn)
@@ -217,6 +220,7 @@ func (c *MatchController) Insertbatch(item *[]models.Match) {
 	manager := models.NewMatchManager(conn)
 
     for i := 0; i < rows; i++ {
+        
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -229,6 +233,8 @@ func (c *MatchController) Insertbatch(item *[]models.Match) {
 func (c *MatchController) Update(item *models.Match) {
     
     
+    
+
 	conn := c.NewConnection()
 
 	manager := models.NewMatchManager(conn)

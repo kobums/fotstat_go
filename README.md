@@ -1,13 +1,13 @@
 <div align="center">
 
-# 🚀 fotstat (Golang Backend Boilerplate)
+# ⚽ Fotstat (Football Statistics API Server)
 
-**Fiber 기반의 Go REST API 서버 기본 템플릿**
+**Go (Fiber) 기반의 축구 경기 통계 및 기록 관리 REST API 서버**
 
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev/)
 [![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=for-the-badge&logo=go&logoColor=white)](https://gofiber.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![JWT](https://img.shields.io/badge/JWT-Auth-black?style=for-the-badge&logo=jsonwebtokens)](https://jwt.io/)
 
 </div>
 
@@ -15,8 +15,8 @@
 
 ## 📖 소개
 
-**fotstat**은 새로운 Go 백엔드 프로젝트를 빠르게 시작하기 위한 기본 템플릿(Boilerplate)입니다.
-Fiber 웹 프레임워크와 자동화된 코드 생성 도구를 활용하여 MVC 아키텍처 기반의 확장성 있는 서버를 구축할 수 있습니다.
+**Fotstat**은 축구 경기(Match), 팀(Team), 선수(Player), 쿼터(Quarter), 그리고 경기 기록(Record) 데이터를 효율적으로 관리하고 통계를 낼 수 있는 백엔드 API 서버입니다.  
+안전한 JWT 기반 인증과 `bcrypt` 암호화를 지원하며, Go언어의 경량 웹 프레임워크인 Fiber를 활용하여 빠르고 확장성 있게 구축되었습니다.
 
 ---
 
@@ -24,10 +24,11 @@ Fiber 웹 프레임워크와 자동화된 코드 생성 도구를 활용하여 M
 
 | 기능 | 설명 |
 |:---|:---|
-| ⚙️ **코드 자동 생성** | `model.json` 정의를 기반으로 DB 모델 및 라우터 자동 생성 |
-| 🗂️ **기본 컨트롤러** | 파일 업로드 기능 및 공통 컨트롤러 로직 포함 |
-| 🔒 **설정 관리** | `.env.yml` 및 환경 변수를 통한 설정 (개발/운영 분리) |
-| 🐳 **Docker 지원** | Multi-stage 빌드를 통한 경량 컨테이너 배포 지원 |
+| 🔒 **인증 (Auth)** | JWT(JSON Web Token) 및 bcrypt를 활용한 안전한 로그인 및 회원가입 (`/api/user`, `/api/jwt`) |
+| ⚽ **경기 통계 도메인** | `User`, `Team`, `Player`, `Match`, `Quarter`, `Record` 도메인에 대한 완전한 CRUD REST API 제공 |
+| 🛡️ **API 보호** | 인증된 사용자(Bearer Token)만 주요 데이터에 접근할 수 있도록 미들웨어 라우팅 분리 |
+| 🗂️ **파일 업로드** | 경기/선수 관련 이미지 등 파일 업로드 기능 (`/api/upload`) |
+| 🧪 **API 테스트 세팅** | `api_postman_collection.json` 제공 (토큰 자동 발급 및 전역 환경 설정 스크립트 포함) |
 
 ---
 
@@ -37,21 +38,22 @@ Fiber 웹 프레임워크와 자동화된 코드 생성 도구를 활용하여 M
 fotstat/
 ├── main.go                 # 앱 엔트리포인트
 ├── services/
-│   └── http.go             # Fiber HTTP 서버 설정 (CORS, TLS, 압축 등)
+│   └── http.go             # Fiber HTTP 서버 설정 (CORS, 정적 파일 제공 등)
 ├── router/
-│   ├── router.go           # 라우터 초기화
-│   └── routers/            # 자동 생성된 라우트 및 기본 라우트 (upload.go)
+│   ├── router.go           # 전체 라우터 초기화 (apiGroup 설정)
+│   ├── auth.go             # JWT 인증 미들웨어 및 권한 검증 로직
+│   └── routers/            # 각 도메인별 자동/수동 생성된 라우트 (user, match, team 등)
 ├── controllers/
-│   ├── controllers.go      # 공통 컨트롤러 베이스 로직
-│   ├── api/                # API 전용 컨트롤러 (파일 업로드)
-│   └── rest/               # 자동 생성된 RESTful 컨트롤러 디렉토리
+│   ├── api/                # API 전용 컨트롤러 (파일 업로드 등)
+│   └── rest/               # 각 모델별 비즈니스 로직 및 RESTful 컨트롤러
 ├── models/
-│   ├── db.go               # 데이터베이스 연결 및 설정
-│   └── cache.go            # 인메모리 캐시 기능
-├── global/                 # 전역 설정 및 유틸리티 (로깅, 시간, 이미지 처리 등)
-├── dockerfile              # Multi-stage Docker 빌드
-├── docker-compose.yml      # Docker Compose 설정
-└── Makefile                # 빌드 및 실행 명령어
+│   ├── db.go               # MySQL 데이터베이스 커넥션 및 쿼리 매니저
+│   └── {domain}.go         # user, team, match, player, quarter, record 모델 정의
+├── global/
+│   └── jwt/                # JWT 토큰 생성 및 bcrypt 패스워드 검증 유틸리티
+├── api_postman_collection.json # 전체 API 테스트용 Postman 컬렉션
+├── docker-compose.yml      # 백엔드 서버 Docker Compose 설정
+└── .env.yml                # 개발/운영 환경 설정 파일
 ```
 
 ---
@@ -60,53 +62,44 @@ fotstat/
 
 ### 1. 프로젝트 초기 설정
 ```bash
-# 의존성 패키지 다운로드
+# 패키지 다운로드
 go mod tidy
 
-# 환경 설정 파일 복사 및 수정
+# 환경 설정 파일 준비 (.env.yml)
+# DB 호스트, 포트, 비밀번호 등 환경에 맞게 수정
 cp .env.yml.example .env.yml
-
-# 데이터베이스 스키마 생성
-mysql -u db_user -p example_db < fotstat.sql
 ```
 
-### 2. 코드 생성 및 실행
-```bash
-# 자동 생성 도구 실행 (도구 별도 필요)
-# buildtool-model / buildtool-router 등
+### 2. 데이터베이스 구성
+MySQL 서버가 실행 중이어야 합니다 (`Err: 61` 주의). `.env.yml`에 지정된 데이터베이스 정보에 맞게 스키마를 구성합니다.
 
-# 서버 빌드 및 실행
-make run
+### 3. 서버 실행
+```bash
+# 개발 모드 실행
+go run main.go
+# 또는 Make 명령어가 구성된 경우: make run
 ```
 서버는 기본적으로 `http://localhost:8007`에서 실행됩니다.
 
 ---
 
-## 📝 환경 설정 (`.env.yml`)
+## 🧪 API 테스트 (Postman)
 
-```yaml
-develop:
-  database:
-    type: mysql
-    host: localhost
-    port: 3306
-    name: example_db
-    user: db_user
-    password: db_password
-  port: 8007
-  cors: [http://localhost:9007]
-  documentRoot: ./webdata
-  path: ./webdata
-```
+프로젝트 루트에 포함된 **`api_postman_collection.json`** 파일을 Postman에 Import하여 사용하세요.
+
+1. **회원가입**: `Auth > Create User` (`POST /api/user`)
+2. **로그인**: `Auth > Login` (`GET /api/jwt`)
+   - 로그인에 성공하면, 응답으로 받은 토큰이 자동으로 Postman 전역 변수 `{{jwt_token}}`에 저장됩니다.
+3. **API 요청**: 이후 모든 `Match`, `Team`, `Player` 관련 API는 컬렉션의 Auth(Bearer Token)를 통해 자동으로 인증되어 원활한 테스트가 가능합니다.
 
 ---
 
-## 🐳 Docker 배포
+## 🐳 Docker 지원
 
 ```bash
-# Docker 이미지 빌드
+# 도커 이미지 빌드
 make docker
 
-# Docker 컨테이너 실행
-make dockerrun
+# 도커 컨테이너 백그라운드 실행
+docker-compose up -d
 ```

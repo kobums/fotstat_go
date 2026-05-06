@@ -6,7 +6,7 @@ const (
     _ Column = iota
     
     ColumnId
-    ColumnUid
+    ColumnUser
     ColumnName
     ColumnCreateddate
     ColumnUpdateddate
