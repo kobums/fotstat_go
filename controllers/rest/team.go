@@ -34,9 +34,9 @@ func (c *TeamController) Index(page int, pagesize int) {
 
     var args []interface{}
     
-    _uid := c.Geti("uid")
-    if _uid != 0 {
-        args = append(args, models.Where{Column:"uid", Value:_uid, Compare:"="})    
+    _user := c.Geti("user")
+    if _user != 0 {
+        args = append(args, models.Where{Column:"user", Value:_user, Compare:"="})    
     }
     _name := c.Get("name")
     if _name != "" {
@@ -118,9 +118,9 @@ func (c *TeamController) Count() {
 
     var args []interface{}
     
-    _uid := c.Geti("uid")
-    if _uid != 0 {
-        args = append(args, models.Where{Column:"uid", Value:_uid, Compare:"="})    
+    _user := c.Geti("user")
+    if _user != 0 {
+        args = append(args, models.Where{Column:"user", Value:_user, Compare:"="})    
     }
     _name := c.Get("name")
     if _name != "" {
