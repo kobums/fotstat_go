@@ -3,6 +3,7 @@ package rest
 
 import (
 	"fotstat/controllers"
+	
 	"fotstat/models"
 
     "strings"
@@ -165,6 +166,8 @@ func (c *TeamController) Count() {
 func (c *TeamController) Insert(item *models.Team) {
     
     
+    
+
 	conn := c.NewConnection()
     
 	manager := models.NewTeamManager(conn)
@@ -194,6 +197,7 @@ func (c *TeamController) Insertbatch(item *[]models.Team) {
 	manager := models.NewTeamManager(conn)
 
     for i := 0; i < rows; i++ {
+        
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -206,6 +210,8 @@ func (c *TeamController) Insertbatch(item *[]models.Team) {
 func (c *TeamController) Update(item *models.Team) {
     
     
+    
+
 	conn := c.NewConnection()
 
 	manager := models.NewTeamManager(conn)
