@@ -3,6 +3,7 @@ package rest
 
 import (
 	"fotstat/controllers"
+	"fotstat/global/jwt"
 	"fotstat/models"
 
     "strings"
@@ -173,7 +174,12 @@ func (c *UserController) Count() {
 }
 
 func (c *UserController) Insert(item *models.UserUpdate) {
-    
+    if item.Password != "" {
+        hashed, err := jwt.GeneratePasswd(item.Password)
+        if err == nil {
+            item.Password = hashed
+        }
+    }
     
 	conn := c.NewConnection()
     
@@ -214,7 +220,12 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
 }
 
 func (c *UserController) Update(item *models.UserUpdate) {
-    
+    if item.Password != "" {
+        hashed, err := jwt.GeneratePasswd(item.Password)
+        if err == nil {
+            item.Password = hashed
+        }
+    }
     
 	conn := c.NewConnection()
 
