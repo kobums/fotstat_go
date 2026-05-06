@@ -3,6 +3,7 @@ package jwt
 import (
 	"errors"
 	"fotstat/models"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
@@ -14,7 +15,13 @@ type AuthTokenClaims struct {
 	jwt.StandardClaims             // 표준 토큰 Claims
 }
 
-var _secretCode string = "WkaQHd100%"
+func secretCode() []byte {
+	s := os.Getenv("JWT_SECRET")
+	if s == "" {
+		panic("JWT_SECRET environment variable is not set")
+	}
+	return []byte(s)
+}
 
 func Check(str string) (*AuthTokenClaims, error) {
 	if len(str) < 7 || str[:7] != "Bearer " {
@@ -29,7 +36,7 @@ func Check(str string) (*AuthTokenClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("Unexpected Signing Method")
 		}
-		return []byte(_secretCode), nil
+		return secretCode(), nil
 	}
 
 	_, err := jwt.ParseWithClaims(token, &claims, key)
@@ -46,12 +53,12 @@ func MakeToken(item models.User) string {
 		User: item,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  jwt.At(now),
-			ExpiresAt: jwt.At(now.Add(time.Hour * 24 * 365 * 10)),
+			ExpiresAt: jwt.At(now.Add(time.Hour * 24)),
 		},
 	}
 
 	atoken := jwt.NewWithClaims(jwt.SigningMethodHS256, &at)
-	signedAuthToken, _ := atoken.SignedString([]byte(_secretCode))
+	signedAuthToken, _ := atoken.SignedString(secretCode())
 
 	return signedAuthToken
 }

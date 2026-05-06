@@ -52,7 +52,11 @@ type _Database struct {
 }
 
 type _Mail struct {
-	Sender string `yaml:"sender"`
+	Server   string `yaml:"server"`
+	Port     string `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Sender   string `yaml:"sender"`
 }
 
 type _Sms struct {
@@ -237,6 +241,27 @@ func Init() {
 	}
 	if envDBPass != "" {
 		Database.Password = envDBPass
+	}
+
+	envMailServer := os.Getenv("MAIL_SERVER")
+	envMailPort := os.Getenv("MAIL_PORT")
+	envMailUser := os.Getenv("MAIL_USER")
+	envMailPass := os.Getenv("MAIL_PASS")
+	envMailSender := os.Getenv("MAIL_SENDER")
+	if envMailServer != "" {
+		Mail.Server = envMailServer
+	}
+	if envMailPort != "" {
+		Mail.Port = envMailPort
+	}
+	if envMailUser != "" {
+		Mail.User = envMailUser
+	}
+	if envMailPass != "" {
+		Mail.Password = envMailPass
+	}
+	if envMailSender != "" {
+		Mail.Sender = envMailSender
 	}
 
 	envTlsCert := strings.ToUpper(os.Getenv("TLS_CERT"))

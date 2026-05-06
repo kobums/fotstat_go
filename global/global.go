@@ -390,11 +390,11 @@ func XmlDecode(str string, item interface{}) error {
 
 func SendMail(email string, title string, content string) error {
 
-	server := "[EMAIL_SERVER]"
-	port := "587"
-	user := "[EMAIL_ADDRESS]"
-	passwd := "[EMAIL_PASSWORD]"
-	sender := "meet <[EMAIL_ADDRESS]>"
+	server := config.Mail.Server
+	port := config.Mail.Port
+	user := config.Mail.User
+	passwd := config.Mail.Password
+	sender := config.Mail.Sender
 
 	if port == "" {
 		port = "587"
