@@ -174,6 +174,9 @@ func (c *UserController) Count() {
 }
 
 func (c *UserController) Insert(item *models.UserUpdate) {
+    
+    
+    
     if item.Password != "" {
         hashed, err := jwt.GeneratePasswd(item.Password)
         if err == nil {
@@ -181,6 +184,7 @@ func (c *UserController) Insert(item *models.UserUpdate) {
         }
     }
     
+
 	conn := c.NewConnection()
     
 	manager := models.NewUserManager(conn)
@@ -210,6 +214,14 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
 	manager := models.NewUserManager(conn)
 
     for i := 0; i < rows; i++ {
+        
+        if (*item)[i].Password != "" {
+            hashed, err := jwt.GeneratePasswd((*item)[i].Password)
+            if err == nil {
+                (*item)[i].Password = hashed
+            }
+        }
+        
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -220,6 +232,9 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
 }
 
 func (c *UserController) Update(item *models.UserUpdate) {
+    
+    
+    
     if item.Password != "" {
         hashed, err := jwt.GeneratePasswd(item.Password)
         if err == nil {
@@ -227,6 +242,7 @@ func (c *UserController) Update(item *models.UserUpdate) {
         }
     }
     
+
 	conn := c.NewConnection()
 
 	manager := models.NewUserManager(conn)
