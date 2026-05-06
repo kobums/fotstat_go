@@ -34,17 +34,23 @@ func getArrayCommai(name string) []int {
 
 func SetRouter(r *fiber.App) {
 
-    // r.Get("/api/jwt", func(c *fiber.Ctx) error {
-	// 	loginid := c.Query("loginid")
-    //     passwd := c.Query("passwd")
-    //     return c.JSON(JwtAuth(c, loginid, passwd))
-	// })
+    r.Get("/api/jwt", func(c *fiber.Ctx) error {
+		loginid := c.Query("loginid")
+        passwd := c.Query("passwd")
+        return c.JSON(JwtAuth(c, loginid, passwd))
+	})
 
 	apiGroup := r.Group("/api")
 
-	// apiGroup.Use(JwtAuthRequired)
+	apiGroup.Use(JwtAuthRequired)
 
 
 	// Setup domain-specific routes
 	routers.SetupUploadRoutes(apiGroup)
+	routers.SetupUserRoutes(apiGroup)
+	routers.SetupMatchRoutes(apiGroup)
+	routers.SetupPlayerRoutes(apiGroup)
+	routers.SetupQuarterRoutes(apiGroup)
+	routers.SetupRecordRoutes(apiGroup)
+	routers.SetupTeamRoutes(apiGroup)
 }
