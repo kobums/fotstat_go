@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"fotstat_go/global/config"
-	"fotstat_go/global/log"
-	"fotstat_go/router"
+	"fotstat/global/config"
+	"fotstat/global/log"
+	"fotstat/router"
 
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"

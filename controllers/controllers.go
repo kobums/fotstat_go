@@ -4,11 +4,11 @@ import (
 	"path"
 	"sync"
 
-	"fotstat_go/global"
-	"fotstat_go/global/config"
-	"fotstat_go/global/log"
-	"fotstat_go/global/time"
-	"fotstat_go/models"
+	"fotstat/global"
+	"fotstat/global/config"
+	"fotstat/global/log"
+	"fotstat/global/time"
+	"fotstat/models"
 
 	"fmt"
 	"math"

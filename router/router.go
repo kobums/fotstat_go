@@ -1,7 +1,7 @@
 package router
 
 import (
-	"fotstat_go/router/routers"
+	"fotstat/router/routers"
 	"strconv"
 	"strings"
 

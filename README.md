@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 fotstat_go (Golang Backend Boilerplate)
+# 🚀 fotstat (Golang Backend Boilerplate)
 
 **Fiber 기반의 Go REST API 서버 기본 템플릿**
 
@@ -15,7 +15,7 @@
 
 ## 📖 소개
 
-**fotstat_go**은 새로운 Go 백엔드 프로젝트를 빠르게 시작하기 위한 기본 템플릿(Boilerplate)입니다.
+**fotstat**은 새로운 Go 백엔드 프로젝트를 빠르게 시작하기 위한 기본 템플릿(Boilerplate)입니다.
 Fiber 웹 프레임워크와 자동화된 코드 생성 도구를 활용하여 MVC 아키텍처 기반의 확장성 있는 서버를 구축할 수 있습니다.
 
 ---
@@ -34,7 +34,7 @@ Fiber 웹 프레임워크와 자동화된 코드 생성 도구를 활용하여 M
 ## 🏗️ 프로젝트 구조
 
 ```
-fotstat_go/
+fotstat/
 ├── main.go                 # 앱 엔트리포인트
 ├── services/
 │   └── http.go             # Fiber HTTP 서버 설정 (CORS, TLS, 압축 등)
@@ -67,7 +67,7 @@ go mod tidy
 cp .env.yml.example .env.yml
 
 # 데이터베이스 스키마 생성
-mysql -u db_user -p example_db < fotstat_go.sql
+mysql -u db_user -p example_db < fotstat.sql
 ```
 
 ### 2. 코드 생성 및 실행

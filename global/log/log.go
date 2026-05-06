@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"fotstat_go/global/config"
+	"fotstat/global/config"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

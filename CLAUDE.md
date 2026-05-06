@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Go REST API backend boilerplate (fotstat_go). Designed to act as a starter template for new backend projects. Built with Fiber v2 web framework on Go 1.26.
+Go REST API backend boilerplate (fotstat). Designed to act as a starter template for new backend projects. Built with Fiber v2 web framework on Go 1.26.
 
 ## Build & Run Commands
 
@@ -14,7 +14,7 @@ make test          # Run tests: go test -v ./...
 make run           # Run via go run main.go
 make linux         # Cross-compile for Linux
 make dockerbuild   # Build static Linux binary for Docker
-make docker        # Build Docker image (kobums/fotstat_go)
+make docker        # Build Docker image (kobums/fotstat)
 make clean         # Remove built binary
 ```
 
@@ -36,5 +36,5 @@ The build process expects `buildtool-model` and `buildtool-router` to auto-gener
 
 1. Define table and structure in `model.json`
 2. Run code generation tools
-3. Add table to `fotstat_go.sql`
+3. Add table to `fotstat.sql`
 4. Re-run `make server` or `make run`

@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"os"
 
-	"fotstat_go/global/log"
+	"fotstat/global/log"
 
 	"github.com/disintegration/imaging"
 )
