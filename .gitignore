@@ -15,3 +15,11 @@ webdata/*
 
 api_postman_collections.json
 go-basic.sql
+
+# TLS certificates & keys
+*.pem
+*.crt
+*.key
+
+# Docker override (may contain env-specific secrets)
+docker-compose.override.yml
