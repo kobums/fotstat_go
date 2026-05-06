@@ -20,8 +20,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"fotstat_go/global/config"
-	"fotstat_go/global/log"
+	"fotstat/global/config"
+	"fotstat/global/log"
 
 	"github.com/google/uuid"
 	"golang.org/x/exp/constraints"

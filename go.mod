@@ -1,4 +1,4 @@
-module fotstat_go
+module fotstat
 
 go 1.26.0
 

@@ -2,8 +2,8 @@ package models
 
 import (
 	"fmt"
-	"fotstat_go/global/config"
-	"fotstat_go/global/log"
+	"fotstat/global/config"
+	"fotstat/global/log"
 
 	"database/sql"
 	"time"

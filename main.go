@@ -7,11 +7,11 @@ import (
 	"runtime"
 	"time"
 
-	"fotstat_go/global/config"
-	"fotstat_go/global/log"
-	"fotstat_go/global/setting"
-	"fotstat_go/models"
-	"fotstat_go/services"
+	"fotstat/global/config"
+	"fotstat/global/log"
+	"fotstat/global/setting"
+	"fotstat/models"
+	"fotstat/services"
 )
 
 func main() {

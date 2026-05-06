@@ -3,9 +3,9 @@ package setting
 import (
 	"sync"
 
-	"fotstat_go/global"
-	"fotstat_go/global/log"
-	"fotstat_go/models"
+	"fotstat/global"
+	"fotstat/global/log"
+	"fotstat/models"
 )
 
 var lock = &sync.Mutex{}

@@ -1,7 +1,7 @@
 package routers
 
 import (
-	"fotstat_go/controllers/api"
+	"fotstat/controllers/api"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -1,8 +1,8 @@
 package api
 
 import (
-	"fotstat_go/controllers"
-	"fotstat_go/global/config"
+	"fotstat/controllers"
+	"fotstat/global/config"
 	"os"
 	"path"
 )

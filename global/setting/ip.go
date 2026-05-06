@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"fotstat_go/global"
+	"fotstat/global"
 
 	"github.com/c-robinson/iplib"
 )
