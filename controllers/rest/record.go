@@ -3,6 +3,7 @@ package rest
 
 import (
 	"fotstat/controllers"
+	
 	"fotstat/models"
 
     "strings"
@@ -186,6 +187,8 @@ func (c *RecordController) Count() {
 func (c *RecordController) Insert(item *models.Record) {
     
     
+    
+
 	conn := c.NewConnection()
     
 	manager := models.NewRecordManager(conn)
@@ -215,6 +218,7 @@ func (c *RecordController) Insertbatch(item *[]models.Record) {
 	manager := models.NewRecordManager(conn)
 
     for i := 0; i < rows; i++ {
+        
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -227,6 +231,8 @@ func (c *RecordController) Insertbatch(item *[]models.Record) {
 func (c *RecordController) Update(item *models.Record) {
     
     
+    
+
 	conn := c.NewConnection()
 
 	manager := models.NewRecordManager(conn)

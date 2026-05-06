@@ -3,6 +3,7 @@ package rest
 
 import (
 	"fotstat/controllers"
+	
 	"fotstat/models"
 
     "strings"
@@ -162,6 +163,8 @@ func (c *QuarterController) Count() {
 func (c *QuarterController) Insert(item *models.Quarter) {
     
     
+    
+
 	conn := c.NewConnection()
     
 	manager := models.NewQuarterManager(conn)
@@ -191,6 +194,7 @@ func (c *QuarterController) Insertbatch(item *[]models.Quarter) {
 	manager := models.NewQuarterManager(conn)
 
     for i := 0; i < rows; i++ {
+        
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -203,6 +207,8 @@ func (c *QuarterController) Insertbatch(item *[]models.Quarter) {
 func (c *QuarterController) Update(item *models.Quarter) {
     
     
+    
+
 	conn := c.NewConnection()
 
 	manager := models.NewQuarterManager(conn)
