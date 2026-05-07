@@ -35,9 +35,9 @@ func getArrayCommai(name string) []int {
 func SetRouter(r *fiber.App) {
 
     r.Get("/api/jwt", func(c *fiber.Ctx) error {
-		loginid := c.Query("loginid")
-        passwd := c.Query("passwd")
-        return c.JSON(JwtAuth(c, loginid, passwd))
+		email := c.Query("email")
+        password := c.Query("password")
+        return c.JSON(JwtAuth(c, email, password))
 	})
 
 	apiGroup := r.Group("/api")

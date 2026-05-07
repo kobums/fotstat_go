@@ -41,7 +41,7 @@ var JwtAuthRequired = func(c *fiber.Ctx) error {
 	})
 }
 
-func JwtAuth(c *fiber.Ctx, email string, passwd string) map[string]interface{} {
+func JwtAuth(c *fiber.Ctx, email string, password string) map[string]interface{} {
 	// 소셜 로그인은 현재 User 모델에 ConnectId 컬럼이 없으므로 임시로 제외했습니다.
 	// 추후 DB 구조 확장이 필요합니다.
 
@@ -50,7 +50,7 @@ func JwtAuth(c *fiber.Ctx, email string, passwd string) map[string]interface{} {
 
 	userManager := models.NewUserManager(conn)
 
-	// 이메일로 유저 검색 (GetByLoginid 대신 GetWhere 사용)
+	// 이메일로 유저 검색 (GetByEmail 대신 GetWhere 사용)
 	var args []interface{}
 	args = append(args, models.Where{Column: "email", Value: email, Compare: "="})
 	item := userManager.GetWhere(args)
@@ -63,7 +63,7 @@ func JwtAuth(c *fiber.Ctx, email string, passwd string) map[string]interface{} {
 	}
 
 	// 비밀번호 확인 (Passwd -> Password 컬럼명 변경 적용)
-	if !jwt.CheckPasswd(item.Password, passwd) {
+	if !jwt.CheckPasswd(item.Password, password) {
 		return map[string]interface{}{
 			"code":    "error",
 			"message": "wrong password",
