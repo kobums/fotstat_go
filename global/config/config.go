@@ -37,6 +37,7 @@ type _Mode struct {
 	Server       []string  `yaml:"server"`
 	Database     _Database `yaml:"database"`
 	Log          _Log      `yaml:"log"`
+	JwtSecret    string    `yaml:"jwtSecret"`
 }
 
 type _Database struct {
@@ -94,6 +95,7 @@ var DocumentRoot string
 var Version string
 var Mode string
 var Port string
+var JwtSecret string
 var Cors []string
 var Server []string
 var _value map[string]interface{}
@@ -148,6 +150,7 @@ func Init() {
 		Log = config.Production.Log
 		Server = config.Production.Server
 		Tls = config.Production.Tls
+		JwtSecret = config.Production.JwtSecret
 
 		if _, exist := obj["production"]; exist {
 			_value = obj["production"].(map[string]interface{})
@@ -163,6 +166,7 @@ func Init() {
 		Log = config.Develop.Log
 		Server = config.Develop.Server
 		Tls = config.Develop.Tls
+		JwtSecret = config.Develop.JwtSecret
 
 		if _, exist := obj["develop"]; exist {
 			_value = obj["develop"].(map[string]interface{})

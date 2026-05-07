@@ -2,8 +2,8 @@ package jwt
 
 import (
 	"errors"
+	"fotstat/global/config"
 	"fotstat/models"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
@@ -16,11 +16,10 @@ type AuthTokenClaims struct {
 }
 
 func secretCode() []byte {
-	s := os.Getenv("JWT_SECRET")
-	if s == "" {
-		panic("JWT_SECRET environment variable is not set")
+	if config.JwtSecret == "" {
+		panic("jwtSecret is not set in .env.yml")
 	}
-	return []byte(s)
+	return []byte(config.JwtSecret)
 }
 
 func Check(str string) (*AuthTokenClaims, error) {
