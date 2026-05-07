@@ -16,13 +16,14 @@ import (
 )
 
 type Quarter struct {
-            
-    Id                int64 `json:"id"`         
-    Match                int `json:"match"`         
-    Number                int `json:"number"`         
-    Createddate                string `json:"createddate"`         
-    Updateddate                string `json:"updateddate"` 
-    
+
+    Id                int64 `json:"id"`
+    Match                int `json:"match"`
+    Number                int `json:"number"`
+    Duration              int `json:"duration"`
+    Createddate                string `json:"createddate"`
+    Updateddate                string `json:"updateddate"`
+
     Extra                    map[string]interface{} `json:"extra"`
 }
 
@@ -115,7 +116,7 @@ func (p *QuarterManager) GetQuery() string {
 
     var ret strings.Builder
 
-    ret.WriteString("select q_id, q_match, q_number, q_createddate, q_updateddate from quarter_tb")
+    ret.WriteString("select q_id, q_match, q_number, q_duration, q_createddate, q_updateddate from quarter_tb")
 
     if p.Index != "" {
         ret.WriteString(" use index(")
@@ -224,11 +225,11 @@ func (p *QuarterManager) Insert(item *Quarter) error {
     var res sql.Result
     var err error
     if item.Id > 0 {
-        query = "insert into quarter_tb (q_id, q_match, q_number, q_createddate, q_updateddate) values (?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Id, item.Match, item.Number, item.Createddate, item.Updateddate)
+        query = "insert into quarter_tb (q_id, q_match, q_number, q_duration, q_createddate, q_updateddate) values (?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Id, item.Match, item.Number, item.Duration, item.Createddate, item.Updateddate)
     } else {
-        query = "insert into quarter_tb (q_match, q_number, q_createddate, q_updateddate) values (?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Match, item.Number, item.Createddate, item.Updateddate)
+        query = "insert into quarter_tb (q_match, q_number, q_duration, q_createddate, q_updateddate) values (?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Match, item.Number, item.Duration, item.Createddate, item.Updateddate)
     }
     
     if err == nil {
@@ -383,8 +384,8 @@ func (p *QuarterManager) Update(item *Quarter) error {
     }
 	
 
-	query := "update quarter_tb set q_match = ?, q_number = ?, q_createddate = ?, q_updateddate = ? where q_id = ?"
-	_, err := p.Exec(query, item.Match, item.Number, item.Createddate, item.Updateddate, item.Id)
+	query := "update quarter_tb set q_match = ?, q_number = ?, q_duration = ?, q_createddate = ?, q_updateddate = ? where q_id = ?"
+	_, err := p.Exec(query, item.Match, item.Number, item.Duration, item.Createddate, item.Updateddate, item.Id)
 
     if err != nil {
         if p.Log {
@@ -549,8 +550,8 @@ func (p *QuarterManager) ReadRow(rows *sql.Rows) *Quarter {
     
 
     if rows.Next() {
-        err = rows.Scan(&item.Id, &item.Match, &item.Number, &item.Createddate, &item.Updateddate)
-        
+        err = rows.Scan(&item.Id, &item.Match, &item.Number, &item.Duration, &item.Createddate, &item.Updateddate)
+
         if item.Createddate == "0000-00-00 00:00:00" || item.Createddate == "1000-01-01 00:00:00" || item.Createddate == "9999-01-01 00:00:00" {
             item.Createddate = ""
         }
@@ -558,7 +559,7 @@ func (p *QuarterManager) ReadRow(rows *sql.Rows) *Quarter {
         if config.Database.Type == config.Postgresql {
             item.Createddate = strings.ReplaceAll(strings.ReplaceAll(item.Createddate, "T", " "), "Z", "")
         }
-		
+
         if item.Updateddate == "0000-00-00 00:00:00" || item.Updateddate == "1000-01-01 00:00:00" || item.Updateddate == "9999-01-01 00:00:00" {
             item.Updateddate = ""
         }
@@ -566,7 +567,6 @@ func (p *QuarterManager) ReadRow(rows *sql.Rows) *Quarter {
         if config.Database.Type == config.Postgresql {
             item.Updateddate = strings.ReplaceAll(strings.ReplaceAll(item.Updateddate, "T", " "), "Z", "")
         }
-		
 
     } else {
         return nil
@@ -592,7 +592,7 @@ func (p *QuarterManager) ReadRows(rows *sql.Rows) []Quarter {
         var item Quarter
         
 
-        err := rows.Scan(&item.Id, &item.Match, &item.Number, &item.Createddate, &item.Updateddate)
+        err := rows.Scan(&item.Id, &item.Match, &item.Number, &item.Duration, &item.Createddate, &item.Updateddate)
         if err != nil {
            if p.Log {
              log.Error().Str("error", err.Error()).Msg("SQL")
