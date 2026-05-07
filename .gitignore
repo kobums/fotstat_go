@@ -13,7 +13,7 @@ Makefile
 webdata/*
 
 
-api_postman_collections.json
+api_postman_collection.json
 go-basic.sql
 
 # TLS certificates & keys
