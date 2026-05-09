@@ -3,10 +3,11 @@ package rest
 
 import (
 	"fotstat/controllers"
-	
-	"fotstat/models"
 
-    "strings"
+	"fotstat/models"
+	"fotstat/models/record"
+
+	"strings"
 )
 
 type RecordController struct {
@@ -242,6 +243,23 @@ func (c *RecordController) Update(item *models.Record) {
         c.Set("error", err)
         return
     }
+}
+
+func (c *RecordController) UpdateStats(item *models.Record) {
+	conn := c.NewConnection()
+	manager := models.NewRecordManager(conn)
+	err := manager.UpdateWhere(
+		[]record.Params{
+			{Column: record.ColumnMin, Value: item.Min},
+			{Column: record.ColumnGoal, Value: item.Goal},
+			{Column: record.ColumnAssist, Value: item.Assist},
+		},
+		[]interface{}{models.Where{Column: "id", Value: item.Id, Compare: "="}},
+	)
+	if err != nil {
+		c.Set("code", "error")
+		c.Set("error", err)
+	}
 }
 
 func (c *RecordController) Delete(item *models.Record) {

@@ -72,6 +72,19 @@ func SetupRecordRoutes(group fiber.Router) {
 		return c.JSON(controller.Result)
 	})
 
+	group.Put("/record/stats", func(c *fiber.Ctx) error {
+		item_ := &models.Record{}
+		err := c.BodyParser(item_)
+		if err != nil {
+			log.Error().Msg(err.Error())
+		}
+		var controller rest.RecordController
+		controller.Init(c)
+		controller.UpdateStats(item_)
+		controller.Close()
+		return c.JSON(controller.Result)
+	})
+
 	group.Put("/record", func(c *fiber.Ctx) error {
 		item_ := &models.Record{}
 		err := c.BodyParser(item_)

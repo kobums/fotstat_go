@@ -1,14 +1,16 @@
 package routers
 
 import (
+
 	"strconv"
 
 	"fotstat/global/log"
 
+
 	"fotstat/controllers/rest"
 
-	"fotstat/models"
 
+	"fotstat/models"
 	"github.com/gofiber/fiber/v2"
 )
 
