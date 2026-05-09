@@ -1,1 +1,0 @@
-ALTER TABLE quarter_tb ADD COLUMN q_duration INT NOT NULL DEFAULT 45 AFTER q_number;
