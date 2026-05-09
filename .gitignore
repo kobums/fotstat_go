@@ -23,3 +23,5 @@ go-basic.sql
 
 # Docker override (may contain env-specific secrets)
 docker-compose.override.yml
+
+*.sql
