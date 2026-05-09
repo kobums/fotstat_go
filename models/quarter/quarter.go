@@ -8,6 +8,8 @@ const (
     ColumnId
     ColumnMatch
     ColumnNumber
+    ColumnDuration
+    ColumnAwaygoals
     ColumnCreateddate
     ColumnUpdateddate
 )

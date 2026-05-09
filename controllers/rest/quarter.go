@@ -3,10 +3,11 @@ package rest
 
 import (
 	"fotstat/controllers"
-	
-	"fotstat/models"
 
-    "strings"
+	"fotstat/models"
+	"fotstat/models/quarter"
+
+	"strings"
 )
 
 type QuarterController struct {
@@ -42,6 +43,14 @@ func (c *QuarterController) Index(page int, pagesize int) {
     _number := c.Geti("number")
     if _number != 0 {
         args = append(args, models.Where{Column:"number", Value:_number, Compare:"="})    
+    }
+    _duration := c.Geti("duration")
+    if _duration != 0 {
+        args = append(args, models.Where{Column:"duration", Value:_duration, Compare:"="})    
+    }
+    _awaygoals := c.Geti("awaygoals")
+    if _awaygoals != 0 {
+        args = append(args, models.Where{Column:"awaygoals", Value:_awaygoals, Compare:"="})    
     }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")
@@ -125,6 +134,14 @@ func (c *QuarterController) Count() {
     _number := c.Geti("number")
     if _number != 0 {
         args = append(args, models.Where{Column:"number", Value:_number, Compare:"="})    
+    }
+    _duration := c.Geti("duration")
+    if _duration != 0 {
+        args = append(args, models.Where{Column:"duration", Value:_duration, Compare:"="})    
+    }
+    _awaygoals := c.Geti("awaygoals")
+    if _awaygoals != 0 {
+        args = append(args, models.Where{Column:"awaygoals", Value:_awaygoals, Compare:"="})    
     }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")
@@ -218,6 +235,19 @@ func (c *QuarterController) Update(item *models.Quarter) {
         c.Set("error", err)
         return
     }
+}
+
+func (c *QuarterController) UpdateAwaygoals(item *models.Quarter) {
+	conn := c.NewConnection()
+	manager := models.NewQuarterManager(conn)
+	err := manager.UpdateWhere(
+		[]quarter.Params{{Column: quarter.ColumnAwaygoals, Value: item.Awaygoals}},
+		[]interface{}{models.Where{Column: "id", Value: item.Id, Compare: "="}},
+	)
+	if err != nil {
+		c.Set("code", "error")
+		c.Set("error", err)
+	}
 }
 
 func (c *QuarterController) Delete(item *models.Quarter) {

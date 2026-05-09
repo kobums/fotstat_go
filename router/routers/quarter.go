@@ -72,6 +72,19 @@ func SetupQuarterRoutes(group fiber.Router) {
 		return c.JSON(controller.Result)
 	})
 
+	group.Put("/quarter/awaygoals", func(c *fiber.Ctx) error {
+		item_ := &models.Quarter{}
+		err := c.BodyParser(item_)
+		if err != nil {
+			log.Error().Msg(err.Error())
+		}
+		var controller rest.QuarterController
+		controller.Init(c)
+		controller.UpdateAwaygoals(item_)
+		controller.Close()
+		return c.JSON(controller.Result)
+	})
+
 	group.Put("/quarter", func(c *fiber.Ctx) error {
 		item_ := &models.Quarter{}
 		err := c.BodyParser(item_)
