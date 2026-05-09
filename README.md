@@ -1,105 +1,229 @@
 <div align="center">
 
-# ⚽ Fotstat (Football Statistics API Server)
+# ⚽ Fotstat — API Server
 
-**Go (Fiber) 기반의 축구 경기 통계 및 기록 관리 REST API 서버**
+**Go (Fiber) 기반 축구 경기 통계 및 기록 관리 REST API 서버**
 
-[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev/)
-[![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=for-the-badge&logo=go&logoColor=white)](https://gofiber.io/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![JWT](https://img.shields.io/badge/JWT-Auth-black?style=for-the-badge&logo=jsonwebtokens)](https://jwt.io/)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev/)
+[![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7?style=flat-square&logo=go&logoColor=white)](https://gofiber.io/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-지원-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
 </div>
 
 ---
 
-## 📖 소개
+## 개요
 
-**Fotstat**은 축구 경기(Match), 팀(Team), 선수(Player), 쿼터(Quarter), 그리고 경기 기록(Record) 데이터를 효율적으로 관리하고 통계를 낼 수 있는 백엔드 API 서버입니다.  
-안전한 JWT 기반 인증과 `bcrypt` 암호화를 지원하며, Go언어의 경량 웹 프레임워크인 Fiber를 활용하여 빠르고 확장성 있게 구축되었습니다.
-
----
-
-## ✨ 주요 기능
-
-| 기능 | 설명 |
-|:---|:---|
-| 🔒 **인증 (Auth)** | JWT(JSON Web Token) 및 bcrypt를 활용한 안전한 로그인 및 회원가입 (`/api/user`, `/api/jwt`) |
-| ⚽ **경기 통계 도메인** | `User`, `Team`, `Player`, `Match`, `Quarter`, `Record` 도메인에 대한 완전한 CRUD REST API 제공 |
-| 🛡️ **API 보호** | 인증된 사용자(Bearer Token)만 주요 데이터에 접근할 수 있도록 미들웨어 라우팅 분리 |
-| 🗂️ **파일 업로드** | 경기/선수 관련 이미지 등 파일 업로드 기능 (`/api/upload`) |
-| 🧪 **API 테스트 세팅** | `api_postman_collection.json` 제공 (토큰 자동 발급 및 전역 환경 설정 스크립트 포함) |
+팀(Team), 선수(Player), 경기(Match), 쿼터(Quarter), 기록(Record) 데이터를 관리하는 RESTful API 서버입니다.
+JWT 기반 인증, bcrypt 암호화, Docker 배포를 지원합니다.
 
 ---
 
-## 🏗️ 프로젝트 구조
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| 언어 | Go 1.26 |
+| 웹 프레임워크 | Fiber v2 |
+| 데이터베이스 | MySQL 8.0 |
+| 인증 | JWT + bcrypt |
+| 로깅 | Zerolog |
+| 배포 | Docker / Docker Compose |
+
+---
+
+## 프로젝트 구조
 
 ```
-fotstat/
-├── main.go                 # 앱 엔트리포인트
+fotstat_go/
+├── main.go
 ├── services/
-│   └── http.go             # Fiber HTTP 서버 설정 (CORS, 정적 파일 제공 등)
+│   └── http.go                  # Fiber 서버 설정 (CORS, 정적파일 등)
 ├── router/
-│   ├── router.go           # 전체 라우터 초기화 (apiGroup 설정)
-│   ├── auth.go             # JWT 인증 미들웨어 및 권한 검증 로직
-│   └── routers/            # 각 도메인별 자동/수동 생성된 라우트 (user, match, team 등)
+│   ├── router.go                # 라우터 초기화 및 그룹 설정
+│   ├── auth.go                  # JWT 미들웨어 및 인증 검증
+│   └── routers/                 # 도메인별 라우트
+│       ├── user.go
+│       ├── team.go
+│       ├── player.go
+│       ├── match.go
+│       ├── quarter.go           # PUT /quarter/awaygoals 포함
+│       ├── record.go            # PUT /record/stats 포함
+│       └── upload.go
 ├── controllers/
-│   ├── api/                # API 전용 컨트롤러 (파일 업로드 등)
-│   └── rest/               # 각 모델별 비즈니스 로직 및 RESTful 컨트롤러
-├── models/
-│   ├── db.go               # MySQL 데이터베이스 커넥션 및 쿼리 매니저
-│   └── {domain}.go         # user, team, match, player, quarter, record 모델 정의
+│   └── rest/                    # 도메인별 비즈니스 로직
+│       ├── user.go
+│       ├── team.go
+│       ├── player.go
+│       ├── match.go
+│       ├── quarter.go
+│       └── record.go
+├── models/                      # 도메인 모델 및 DB 연결
+│   ├── db.go
+│   ├── cache.go
+│   ├── user.go
+│   ├── team.go
+│   ├── player.go
+│   ├── match.go
+│   ├── quarter.go
+│   └── record.go
 ├── global/
-│   └── jwt/                # JWT 토큰 생성 및 bcrypt 패스워드 검증 유틸리티
-├── api_postman_collection.json # 전체 API 테스트용 Postman 컬렉션
-├── docker-compose.yml      # 백엔드 서버 Docker Compose 설정
-└── .env.yml                # 개발/운영 환경 설정 파일
+│   ├── config/                  # 환경 설정 로더
+│   ├── jwt/                     # JWT 생성 및 bcrypt 유틸리티
+│   ├── log/                     # 로거 초기화
+│   └── setting/                 # 전역 설정 싱글톤
+├── go-basic.sql                 # 기본 스키마 SQL
+├── migration_add_quarter_duration.sql
+├── migration_add_quarter_awaygoals.sql
+├── docker-compose.yml
+├── dockerfile
+├── Makefile
+└── api_postman_collection.json  # Postman 테스트 컬렉션
 ```
 
 ---
 
-## 🚀 시작하기
+## API 엔드포인트
 
-### 1. 프로젝트 초기 설정
+모든 엔드포인트는 `/api` 접두사를 사용하며, Auth를 제외한 모든 요청에 **Bearer Token** 인증이 필요합니다.
+
+### Auth
+
+| Method | Path | 설명 |
+|---|---|---|
+| `POST` | `/api/user` | 회원가입 |
+| `GET` | `/api/jwt` | 로그인 (JWT 발급) |
+
+### Team
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/team?user={id}` | 팀 목록 조회 |
+| `POST` | `/api/team` | 팀 생성 |
+| `PUT` | `/api/team` | 팀 수정 |
+| `DELETE` | `/api/team` | 팀 삭제 |
+
+### Player
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/player?team={id}` | 선수 목록 조회 |
+| `POST` | `/api/player` | 선수 추가 |
+| `PUT` | `/api/player` | 선수 수정 |
+| `DELETE` | `/api/player` | 선수 삭제 |
+
+### Match
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/match?team={id}` | 경기 목록 조회 |
+| `POST` | `/api/match` | 경기 생성 |
+| `PUT` | `/api/match` | 경기 수정 |
+| `DELETE` | `/api/match` | 경기 삭제 |
+
+### Quarter
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/quarter?match={id}` | 쿼터 목록 조회 |
+| `POST` | `/api/quarter` | 쿼터 생성 |
+| `PUT` | `/api/quarter/awaygoals` | 원정 골 수 부분 수정 |
+| `PUT` | `/api/quarter` | 쿼터 전체 수정 |
+| `DELETE` | `/api/quarter` | 쿼터 삭제 |
+
+### Record
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/record?quarter={id}` | 기록 목록 조회 |
+| `GET` | `/api/record?player={id}` | 선수별 기록 조회 |
+| `POST` | `/api/record` | 기록 생성 |
+| `PUT` | `/api/record/stats` | 골/어시스트/출전시간 부분 수정 |
+| `PUT` | `/api/record` | 기록 전체 수정 |
+| `DELETE` | `/api/record` | 기록 삭제 |
+
+> **부분 업데이트 엔드포인트** (`/awaygoals`, `/stats`): 전체 UPDATE 시 다른 필드가 0으로 덮어씌워지는 문제를 방지하기 위해 지정 컬럼만 업데이트합니다.
+
+---
+
+## 응답 형식
+
+```json
+// 목록 조회
+{ "code": "success", "items": [...] }
+
+// 단건 조회 / 생성 / 수정
+{ "code": "success", "item": { ... } }
+
+// 삭제 / 기타
+{ "code": "success" }
+
+// 오류
+{ "code": "error", "message": "..." }
+```
+
+---
+
+## 시작하기
+
+### 요구사항
+
+- Go 1.26+
+- MySQL 8.0+
+
+### 1. 환경 설정
+
 ```bash
-# 패키지 다운로드
-go mod tidy
-
-# 환경 설정 파일 준비 (.env.yml)
-# DB 호스트, 포트, 비밀번호 등 환경에 맞게 수정
 cp .env.yml.example .env.yml
+# .env.yml 에서 DB 접속 정보 수정
 ```
 
-### 2. 데이터베이스 구성
-MySQL 서버가 실행 중이어야 합니다 (`Err: 61` 주의). `.env.yml`에 지정된 데이터베이스 정보에 맞게 스키마를 구성합니다.
+### 2. 데이터베이스 초기화
 
-### 3. 서버 실행
 ```bash
-# 개발 모드 실행
-go run main.go
-# 또는 Make 명령어가 구성된 경우: make run
+mysql -u root -p fotstat < go-basic.sql
+mysql -u root -p fotstat < migration_add_quarter_duration.sql
+mysql -u root -p fotstat < migration_add_quarter_awaygoals.sql
 ```
-서버는 기본적으로 `http://localhost:8007`에서 실행됩니다.
+
+### 3. 실행
+
+```bash
+go mod tidy
+make run
+```
+
+서버는 기본 포트 **8007**에서 실행됩니다.
 
 ---
 
-## 🧪 API 테스트 (Postman)
-
-프로젝트 루트에 포함된 **`api_postman_collection.json`** 파일을 Postman에 Import하여 사용하세요.
-
-1. **회원가입**: `Auth > Create User` (`POST /api/user`)
-2. **로그인**: `Auth > Login` (`GET /api/jwt`)
-   - 로그인에 성공하면, 응답으로 받은 토큰이 자동으로 Postman 전역 변수 `{{jwt_token}}`에 저장됩니다.
-3. **API 요청**: 이후 모든 `Match`, `Team`, `Player` 관련 API는 컬렉션의 Auth(Bearer Token)를 통해 자동으로 인증되어 원활한 테스트가 가능합니다.
-
----
-
-## 🐳 Docker 지원
+## Docker 배포
 
 ```bash
-# 도커 이미지 빌드
-make docker
-
-# 도커 컨테이너 백그라운드 실행
+# 백그라운드 실행
 docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f backend
+```
+
+---
+
+## Postman 테스트
+
+`api_postman_collection.json`을 Postman에서 Import 후:
+
+1. `POST /api/user` — 회원가입
+2. `GET /api/jwt` — 로그인 → 응답 토큰이 `{{jwt_token}}`에 자동 저장
+3. 이후 모든 요청에 Bearer Token 자동 적용
+
+---
+
+## 빌드
+
+```bash
+make server     # 로컬 바이너리 빌드
+make linux      # Linux 배포용 바이너리
+make docker     # Docker 이미지 빌드
 ```
