@@ -48,6 +48,10 @@ func (c *PlayerController) Index(page int, pagesize int) {
     if _number != 0 {
         args = append(args, models.Where{Column:"number", Value:_number, Compare:"="})    
     }
+    _position := c.Get("position")
+    if _position != "" {
+        args = append(args, models.Where{Column:"position", Value:_position, Compare:"like"})
+    }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")
     if _startcreateddate != "" && _endcreateddate != "" {        
@@ -136,6 +140,11 @@ func (c *PlayerController) Count() {
     _number := c.Geti("number")
     if _number != 0 {
         args = append(args, models.Where{Column:"number", Value:_number, Compare:"="})    
+    }
+    _position := c.Get("position")
+    if _position != "" {
+        args = append(args, models.Where{Column:"position", Value:_position, Compare:"like"})
+        
     }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")

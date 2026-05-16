@@ -21,6 +21,7 @@ type Player struct {
     Team                int `json:"team"`         
     Name                string `json:"name"`         
     Number                int `json:"number"`         
+    Position                string `json:"position"`         
     Createddate                string `json:"createddate"`         
     Updateddate                string `json:"updateddate"` 
     
@@ -116,7 +117,7 @@ func (p *PlayerManager) GetQuery() string {
 
     var ret strings.Builder
 
-    ret.WriteString("select p_id, p_team, p_name, p_number, p_createddate, p_updateddate from player_tb")
+    ret.WriteString("select p_id, p_team, p_name, p_number, p_position, p_createddate, p_updateddate from player_tb")
 
     if p.Index != "" {
         ret.WriteString(" use index(")
@@ -225,11 +226,11 @@ func (p *PlayerManager) Insert(item *Player) error {
     var res sql.Result
     var err error
     if item.Id > 0 {
-        query = "insert into player_tb (p_id, p_team, p_name, p_number, p_createddate, p_updateddate) values (?, ?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Id, item.Team, item.Name, item.Number, item.Createddate, item.Updateddate)
+        query = "insert into player_tb (p_id, p_team, p_name, p_number, p_position, p_createddate, p_updateddate) values (?, ?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Id, item.Team, item.Name, item.Number, item.Position, item.Createddate, item.Updateddate)
     } else {
-        query = "insert into player_tb (p_team, p_name, p_number, p_createddate, p_updateddate) values (?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Team, item.Name, item.Number, item.Createddate, item.Updateddate)
+        query = "insert into player_tb (p_team, p_name, p_number, p_position, p_createddate, p_updateddate) values (?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Team, item.Name, item.Number, item.Position, item.Createddate, item.Updateddate)
     }
     
     if err == nil {
@@ -384,8 +385,8 @@ func (p *PlayerManager) Update(item *Player) error {
     }
 	
 
-	query := "update player_tb set p_team = ?, p_name = ?, p_number = ?, p_createddate = ?, p_updateddate = ? where p_id = ?"
-	_, err := p.Exec(query, item.Team, item.Name, item.Number, item.Createddate, item.Updateddate, item.Id)
+	query := "update player_tb set p_team = ?, p_name = ?, p_number = ?, p_position = ?, p_createddate = ?, p_updateddate = ? where p_id = ?"
+	_, err := p.Exec(query, item.Team, item.Name, item.Number, item.Position, item.Createddate, item.Updateddate, item.Id)
 
     if err != nil {
         if p.Log {
@@ -422,6 +423,9 @@ func (p *PlayerManager) UpdateWhere(columns []player.Params, args []interface{})
         initParams = append(initParams, v.Value)
         } else if v.Column == player.ColumnNumber {
         initQuery.WriteString("p_number = ?")
+        initParams = append(initParams, v.Value)
+        } else if v.Column == player.ColumnPosition {
+        initQuery.WriteString("p_position = ?")
         initParams = append(initParams, v.Value)
         } else if v.Column == player.ColumnCreateddate {
         initQuery.WriteString("p_createddate = ?")
@@ -503,6 +507,23 @@ func (p *PlayerManager) UpdateNumber(value int, id int64) error {
     return err
 }
 
+func (p *PlayerManager) UpdatePosition(value string, id int64) error {
+    if !p.Conn.IsConnect() {
+        return errors.New("Connection Error")
+    }
+
+	query := "update player_tb set p_position = ? where p_id = ?"
+	_, err := p.Exec(query, value, id)
+
+    if err != nil {
+        if p.Log {
+          log.Error().Str("error", err.Error()).Msg("SQL")
+        }
+    }
+
+    return err
+}
+
 func (p *PlayerManager) UpdateCreateddate(value string, id int64) error {
     if !p.Conn.IsConnect() {
         return errors.New("Connection Error")
@@ -570,7 +591,7 @@ func (p *PlayerManager) ReadRow(rows *sql.Rows) *Player {
     
 
     if rows.Next() {
-        err = rows.Scan(&item.Id, &item.Team, &item.Name, &item.Number, &item.Createddate, &item.Updateddate)
+        err = rows.Scan(&item.Id, &item.Team, &item.Name, &item.Number, &item.Position, &item.Createddate, &item.Updateddate)
         
         if item.Createddate == "0000-00-00 00:00:00" || item.Createddate == "1000-01-01 00:00:00" || item.Createddate == "9999-01-01 00:00:00" {
             item.Createddate = ""
@@ -613,7 +634,7 @@ func (p *PlayerManager) ReadRows(rows *sql.Rows) []Player {
         var item Player
         
 
-        err := rows.Scan(&item.Id, &item.Team, &item.Name, &item.Number, &item.Createddate, &item.Updateddate)
+        err := rows.Scan(&item.Id, &item.Team, &item.Name, &item.Number, &item.Position, &item.Createddate, &item.Updateddate)
         if err != nil {
            if p.Log {
              log.Error().Str("error", err.Error()).Msg("SQL")
