@@ -7,7 +7,7 @@ services:
     platform: linux/amd64
     image: kobums/gowoobro_go:latest
     ports:
-      - "8007:8007"
+      - "8009:8009"
     env_file:
       - .env.yml
     volumes:
