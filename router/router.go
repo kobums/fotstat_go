@@ -40,6 +40,8 @@ func SetRouter(r *fiber.App) {
         return c.JSON(JwtAuth(c, email, password))
 	})
 
+	r.Post("/api/apple-auth", AppleAuth)
+
 	apiGroup := r.Group("/api")
 
 	apiGroup.Use(JwtAuthRequired)
