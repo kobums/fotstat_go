@@ -21,6 +21,11 @@ go-basic.sql
 *.crt
 *.key
 
+# Sign in with Apple private key
+*.p8
+secrets/*
+!secrets/README.md
+
 # Docker override (may contain env-specific secrets)
 docker-compose.override.yml
 

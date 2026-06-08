@@ -38,6 +38,7 @@ type _Mode struct {
 	Database     _Database `yaml:"database"`
 	Log          _Log      `yaml:"log"`
 	JwtSecret    string    `yaml:"jwtSecret"`
+	Apple        _Apple    `yaml:"apple"`
 }
 
 type _Database struct {
@@ -85,11 +86,20 @@ type Config struct {
 	Production _Mode  `yaml:"production"`
 }
 
+type _Apple struct {
+	TeamID         string `yaml:"teamId"`         // Apple Developer Team ID (10 chars)
+	KeyID          string `yaml:"keyId"`          // Key ID of the Sign in with Apple .p8 key
+	ClientID       string `yaml:"clientId"`       // App Bundle ID (aud of identity token / sub of client secret)
+	PrivateKeyPath string `yaml:"privateKeyPath"` // Path to the .p8 file
+	PrivateKey     string `yaml:"privateKey"`     // Inline PEM contents (overrides path); also holds resolved key
+}
+
 var Mail _Mail
 var Database _Database
 var Sms _Sms
 var Tls _Tls
 var Log _Log
+var Apple _Apple
 var UploadPath string
 var DocumentRoot string
 var Version string
@@ -151,6 +161,7 @@ func Init() {
 		Server = config.Production.Server
 		Tls = config.Production.Tls
 		JwtSecret = config.Production.JwtSecret
+		Apple = config.Production.Apple
 
 		if _, exist := obj["production"]; exist {
 			_value = obj["production"].(map[string]interface{})
@@ -167,6 +178,7 @@ func Init() {
 		Server = config.Develop.Server
 		Tls = config.Develop.Tls
 		JwtSecret = config.Develop.JwtSecret
+		Apple = config.Develop.Apple
 
 		if _, exist := obj["develop"]; exist {
 			_value = obj["develop"].(map[string]interface{})
@@ -325,8 +337,45 @@ func Init() {
 		}
 	}
 
+	// Sign in with Apple — used for server-to-server token revocation on
+	// account deletion. Base values come from .env.yml (per mode); environment
+	// variables override them (handy for Docker/production secrets).
+	if v := os.Getenv("APPLE_TEAM_ID"); v != "" {
+		Apple.TeamID = v
+	}
+	if v := os.Getenv("APPLE_KEY_ID"); v != "" {
+		Apple.KeyID = v
+	}
+	if v := os.Getenv("APPLE_CLIENT_ID"); v != "" {
+		Apple.ClientID = v
+	}
+	if Apple.ClientID == "" {
+		Apple.ClientID = "com.gowoobro.fotstat"
+	}
+	if v := os.Getenv("APPLE_PRIVATE_KEY_PATH"); v != "" {
+		Apple.PrivateKeyPath = v
+	}
+	if v := os.Getenv("APPLE_PRIVATE_KEY"); v != "" {
+		// Inline PEM. Allow "\n" escapes so it can be passed on one line.
+		Apple.PrivateKey = strings.ReplaceAll(v, "\\n", "\n")
+	}
+	// Resolve the private key: inline value wins, otherwise read from the path.
+	if Apple.PrivateKey == "" && Apple.PrivateKeyPath != "" {
+		if buf, err := os.ReadFile(Apple.PrivateKeyPath); err == nil {
+			Apple.PrivateKey = string(buf)
+		} else {
+			log.Printf("apple private key read failed: %v", err)
+		}
+	}
+
 	Version = config.Version
 	CrawlerId = "chin1525"
+}
+
+// AppleConfigured reports whether enough Apple credentials are present to
+// perform server-to-server token exchange and revocation.
+func AppleConfigured() bool {
+	return Apple.TeamID != "" && Apple.KeyID != "" && Apple.ClientID != "" && Apple.PrivateKey != ""
 }
 
 func Get(name string) interface{} {
