@@ -472,9 +472,6 @@ func (p *UserManager) UpdateWhere(columns []user.Params, args []interface{}) err
     return err
 }
 
-/*
-
-
 func (p *UserManager) UpdateEmail(value string, id int64) error {
     if !p.Conn.IsConnect() {
         return errors.New("Connection Error")
@@ -559,9 +556,6 @@ func (p *UserManager) UpdateUpdateddate(value string, id int64) error {
 
     return err
 }
-
-
-*/
 
 func (p *UserManager) GetIdentity() int64 {
     if !p.Conn.IsConnect() {

@@ -14,6 +14,8 @@ import (
 	gjwt "github.com/dgrijalva/jwt-go/v4"
 	"github.com/gofiber/fiber/v2"
 
+	"fotstat/global/apple"
+	"fotstat/global/config"
 	"fotstat/global/jwt"
 	"fotstat/global/log"
 	"fotstat/models"
@@ -35,6 +37,13 @@ type appleClaims struct {
 	Email string `json:"email"`
 	gjwt.StandardClaims
 }
+
+// appleBundleID is the audience (aud) value Apple sets in the identity token.
+// It must match the app's Bundle ID (or Service ID for web sign-in).
+const (
+	appleBundleID = "com.gowoobro.fotstat"
+	appleIssuer   = "https://appleid.apple.com"
+)
 
 var (
 	appleKeyCache     *appleJWKSet
@@ -102,7 +111,7 @@ func verifyAppleToken(identityToken string) (*appleClaims, error) {
 		}
 
 		return nil, fmt.Errorf("matching key not found for kid: %s", kid)
-	})
+	}, gjwt.WithAudience(appleBundleID), gjwt.WithIssuer(appleIssuer))
 
 	if err != nil {
 		return nil, err
@@ -118,8 +127,9 @@ func verifyAppleToken(identityToken string) (*appleClaims, error) {
 
 func AppleAuth(c *fiber.Ctx) error {
 	var body struct {
-		IdentityToken string `json:"identityToken"`
-		Name          string `json:"name"`
+		IdentityToken     string `json:"identityToken"`
+		AuthorizationCode string `json:"authorizationCode"`
+		Name              string `json:"name"`
 	}
 
 	if err := c.BodyParser(&body); err != nil || body.IdentityToken == "" {
@@ -146,7 +156,18 @@ func AppleAuth(c *fiber.Ctx) error {
 	args = append(args, models.Where{Column: "email", Value: email, Compare: "="})
 	user := userManager.GetWhere(args)
 
-	if user == nil {
+	if user != nil {
+		// Apple only returns the real name on the first authorization. If we now
+		// received a real name but the stored one is empty or the default
+		// placeholder, backfill it onto the existing user.
+		if body.Name != "" && (user.Name == "" || user.Name == "Apple 사용자") {
+			if err := userManager.UpdateName(body.Name, user.Id); err != nil {
+				log.Error().Str("error", err.Error()).Msg("Apple auth: update name")
+			} else {
+				user.Name = body.Name
+			}
+		}
+	} else {
 		name := body.Name
 		if name == "" {
 			name = "Apple 사용자"
@@ -168,6 +189,17 @@ func AppleAuth(c *fiber.Ctx) error {
 			Id:    id,
 			Email: email,
 			Name:  name,
+		}
+	}
+
+	// Exchange the authorization code for a refresh token and store it so the
+	// account can be revoked on deletion (required by App Store guideline
+	// 5.1.1(v)). Best-effort: never block login if this fails or is unconfigured.
+	if body.AuthorizationCode != "" && config.AppleConfigured() {
+		if refresh, err := apple.ExchangeCode(body.AuthorizationCode); err != nil {
+			log.Error().Str("error", err.Error()).Msg("Apple auth: code exchange")
+		} else if err := models.SaveAppleRefreshToken(conn, user.Id, refresh); err != nil {
+			log.Error().Str("error", err.Error()).Msg("Apple auth: save refresh token")
 		}
 	}
 
