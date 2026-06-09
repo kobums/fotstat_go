@@ -1,13 +1,93 @@
 package router
 
 import (
+	"strings"
+
 	"fotstat/global/apple"
 	"fotstat/global/config"
+	"fotstat/global/jwt"
 	"fotstat/global/log"
 	"fotstat/models"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// UpgradeAccount converts the authenticated guest account into a full account
+// in place, keeping the same user id so all of the guest's data (teams,
+// players, matches, records) is preserved. Only guest accounts may upgrade.
+func UpgradeAccount(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(*models.User)
+	if !ok || user == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code":    "error",
+			"message": "unauthorized",
+		})
+	}
+
+	if !strings.HasPrefix(user.Email, "guest:") {
+		return c.JSON(fiber.Map{"code": "error", "message": "이미 가입된 계정입니다"})
+	}
+
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.JSON(fiber.Map{"code": "error", "message": "잘못된 요청입니다"})
+	}
+
+	body.Email = strings.TrimSpace(body.Email)
+	if body.Email == "" || body.Password == "" {
+		return c.JSON(fiber.Map{"code": "error", "message": "이메일과 비밀번호를 입력해주세요"})
+	}
+
+	conn := models.NewConnection()
+	defer conn.Close()
+
+	userManager := models.NewUserManager(conn)
+
+	// Reject if the email is already used by a different account.
+	var args []interface{}
+	args = append(args, models.Where{Column: "email", Value: body.Email, Compare: "="})
+	if existing := userManager.GetWhere(args); existing != nil && existing.Id != user.Id {
+		return c.JSON(fiber.Map{"code": "error", "message": "이미 사용 중인 이메일입니다"})
+	}
+
+	hashed, err := jwt.GeneratePasswd(body.Password)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: hash password")
+		return c.JSON(fiber.Map{"code": "error", "message": "가입에 실패했습니다"})
+	}
+
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		name = "사용자"
+	}
+
+	if err := userManager.UpdateEmail(body.Email, user.Id); err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: update email")
+		return c.JSON(fiber.Map{"code": "error", "message": "가입에 실패했습니다"})
+	}
+	if err := userManager.UpdatePassword(hashed, user.Id); err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: update password")
+		return c.JSON(fiber.Map{"code": "error", "message": "가입에 실패했습니다"})
+	}
+	if err := userManager.UpdateName(name, user.Id); err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: update name")
+		return c.JSON(fiber.Map{"code": "error", "message": "가입에 실패했습니다"})
+	}
+
+	// The JWT embeds the user's email/name, so re-issue it after the upgrade.
+	updated := &models.User{Id: user.Id, Email: body.Email, Name: name}
+	token := jwt.MakeToken(*updated)
+
+	return c.JSON(fiber.Map{
+		"code":  "ok",
+		"token": token,
+		"user":  updated,
+	})
+}
 
 // DeleteAccount removes the authenticated user's account along with all
 // data owned by them. Foreign keys are declared ON DELETE CASCADE, so deleting

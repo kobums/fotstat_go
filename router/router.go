@@ -49,6 +49,7 @@ func SetRouter(r *fiber.App) {
 	apiGroup.Use(JwtAuthRequired)
 
 	apiGroup.Delete("/account", DeleteAccount)
+	apiGroup.Post("/account/upgrade", UpgradeAccount)
 
 
 	// Setup domain-specific routes
