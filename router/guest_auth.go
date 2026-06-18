@@ -45,9 +45,17 @@ func GuestAuth(c *fiber.Ctx) error {
 
 	token := jwt.MakeToken(*user)
 
+	// Issue a refresh token so the guest session survives access-JWT expiry
+	// without forcing a brand-new guest account on next launch.
+	refresh, err := models.CreateRefreshToken(conn, user.Id)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("Guest auth: create refresh token")
+	}
+
 	return c.JSON(fiber.Map{
-		"code":  "ok",
-		"token": token,
-		"user":  user,
+		"code":    "ok",
+		"token":   token,
+		"refresh": refresh,
+		"user":    user,
 	})
 }

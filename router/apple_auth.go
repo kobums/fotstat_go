@@ -206,9 +206,17 @@ func AppleAuth(c *fiber.Ctx) error {
 	user.Password = ""
 	token := jwt.MakeToken(*user)
 
+	// Issue our own long-lived refresh token (distinct from Apple's) so the app
+	// can renew the access JWT without a fresh Sign in with Apple round-trip.
+	appRefresh, err := models.CreateRefreshToken(conn, user.Id)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("Apple auth: create app refresh token")
+	}
+
 	return c.JSON(fiber.Map{
-		"code":  "ok",
-		"token": token,
-		"user":  user,
+		"code":    "ok",
+		"token":   token,
+		"refresh": appRefresh,
+		"user":    user,
 	})
 }

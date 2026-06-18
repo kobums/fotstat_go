@@ -78,9 +78,17 @@ func JwtAuth(c *fiber.Ctx, email string, password string) map[string]interface{}
 
 	token := jwt.MakeToken(*item)
 
+	// Issue a long-lived refresh token so the client can stay signed in after
+	// the access JWT expires. Best-effort: never block login if it fails.
+	refresh, err := models.CreateRefreshToken(conn, item.Id)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("JwtAuth: create refresh token")
+	}
+
 	return map[string]interface{}{
-		"code":  "ok",
-		"token": token,
-		"user":  item,
+		"code":    "ok",
+		"token":   token,
+		"refresh": refresh,
+		"user":    item,
 	}
 }
