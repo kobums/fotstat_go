@@ -92,12 +92,15 @@ func UpgradeAccount(c *fiber.Ctx) error {
 		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: create refresh token")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    "ok",
-		"token":   token,
-		"refresh": refresh,
-		"user":    updated,
-	})
+	resp := fiber.Map{
+		"code":  "ok",
+		"token": token,
+		"user":  updated,
+	}
+	if refresh != "" {
+		resp["refresh"] = refresh
+	}
+	return c.JSON(resp)
 }
 
 // Logout revokes the authenticated user's refresh tokens server-side so a
@@ -116,7 +119,9 @@ func Logout(c *fiber.Ctx) error {
 
 	if err := models.DeleteUserRefreshTokens(conn, user.Id); err != nil {
 		log.Error().Str("error", err.Error()).Msg("Logout: revoke refresh tokens")
-		return c.JSON(fiber.Map{"code": "error", "message": "로그아웃에 실패했습니다"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": "error", "message": "로그아웃에 실패했습니다",
+		})
 	}
 
 	return c.JSON(fiber.Map{"code": "ok"})

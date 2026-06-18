@@ -68,6 +68,12 @@ func LookupRefreshToken(conn *Connection, token string) (*User, error) {
 			return nil, err
 		}
 	}
+	// rows.Next() returning false can mean either "no rows" or an iteration
+	// error; surface the latter as an error instead of "token not found".
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
 	// Free the connection before the UPDATE/SELECT below reuse it.
 	rows.Close()
 
@@ -83,7 +89,14 @@ func LookupRefreshToken(conn *Connection, token string) (*User, error) {
 		return nil, err
 	}
 
-	return NewUserManager(conn).Get(userId), nil
+	// The token was valid, so the owning user must exist (FK + ON DELETE
+	// CASCADE). A nil here means a lookup failure, not an expired token —
+	// return an error so the caller doesn't mistake it for "re-login required".
+	user := NewUserManager(conn).Get(userId)
+	if user == nil {
+		return nil, sql.ErrNoRows
+	}
+	return user, nil
 }
 
 // DeleteUserRefreshTokens revokes every refresh token belonging to a user

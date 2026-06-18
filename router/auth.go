@@ -85,10 +85,15 @@ func JwtAuth(c *fiber.Ctx, email string, password string) map[string]interface{}
 		log.Error().Str("error", err.Error()).Msg("JwtAuth: create refresh token")
 	}
 
-	return map[string]interface{}{
-		"code":    "ok",
-		"token":   token,
-		"refresh": refresh,
-		"user":    item,
+	resp := map[string]interface{}{
+		"code":  "ok",
+		"token": token,
+		"user":  item,
 	}
+	// Only advertise a refresh token when one was actually issued; an empty
+	// string would otherwise be stored by the client as a useless token.
+	if refresh != "" {
+		resp["refresh"] = refresh
+	}
+	return resp
 }

@@ -52,10 +52,13 @@ func GuestAuth(c *fiber.Ctx) error {
 		log.Error().Str("error", err.Error()).Msg("Guest auth: create refresh token")
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    "ok",
-		"token":   token,
-		"refresh": refresh,
-		"user":    user,
-	})
+	resp := fiber.Map{
+		"code":  "ok",
+		"token": token,
+		"user":  user,
+	}
+	if refresh != "" {
+		resp["refresh"] = refresh
+	}
+	return c.JSON(resp)
 }
