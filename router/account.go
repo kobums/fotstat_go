@@ -82,11 +82,49 @@ func UpgradeAccount(c *fiber.Ctx) error {
 	updated := &models.User{Id: user.Id, Email: body.Email, Name: name}
 	token := jwt.MakeToken(*updated)
 
-	return c.JSON(fiber.Map{
+	// Revoke any refresh tokens issued while this was a guest account, then mint
+	// a fresh one for the upgraded session so old guest tokens can't be reused.
+	if err := models.DeleteUserRefreshTokens(conn, updated.Id); err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: revoke old refresh tokens")
+	}
+	refresh, err := models.CreateRefreshToken(conn, updated.Id)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("UpgradeAccount: create refresh token")
+	}
+
+	resp := fiber.Map{
 		"code":  "ok",
 		"token": token,
 		"user":  updated,
-	})
+	}
+	if refresh != "" {
+		resp["refresh"] = refresh
+	}
+	return c.JSON(resp)
+}
+
+// Logout revokes the authenticated user's refresh tokens server-side so a
+// stolen or leaked token can no longer renew a session after sign-out. The
+// client still discards its local copies; this severs the server end too.
+func Logout(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(*models.User)
+	if !ok || user == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": "error", "message": "unauthorized",
+		})
+	}
+
+	conn := models.NewConnection()
+	defer conn.Close()
+
+	if err := models.DeleteUserRefreshTokens(conn, user.Id); err != nil {
+		log.Error().Str("error", err.Error()).Msg("Logout: revoke refresh tokens")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": "error", "message": "로그아웃에 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{"code": "ok"})
 }
 
 // DeleteAccount removes the authenticated user's account along with all

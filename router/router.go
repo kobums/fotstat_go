@@ -44,12 +44,15 @@ func SetRouter(r *fiber.App) {
 
 	r.Post("/api/guest", GuestAuth)
 
+	r.Post("/api/refresh", RefreshToken)
+
 	apiGroup := r.Group("/api")
 
 	apiGroup.Use(JwtAuthRequired)
 
 	apiGroup.Delete("/account", DeleteAccount)
 	apiGroup.Post("/account/upgrade", UpgradeAccount)
+	apiGroup.Post("/logout", Logout)
 
 
 	// Setup domain-specific routes
