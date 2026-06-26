@@ -11,6 +11,8 @@ const (
     ColumnMin
     ColumnGoal
     ColumnAssist
+    ColumnYellowcard
+    ColumnRedcard
     ColumnCreateddate
     ColumnUpdateddate
 )

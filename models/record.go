@@ -20,10 +20,12 @@ type Record struct {
     Id                int64 `json:"id"`         
     Quarter                int `json:"quarter"`         
     Player                int `json:"player"`         
-    Min                int `json:"min"`         
-    Goal                int `json:"goal"`         
-    Assist                int `json:"assist"`         
-    Createddate                string `json:"createddate"`         
+    Min                int `json:"min"`
+    Goal                int `json:"goal"`
+    Assist                int `json:"assist"`
+    Yellowcard                int `json:"yellowcard"`
+    Redcard                int `json:"redcard"`
+    Createddate                string `json:"createddate"`
     Updateddate                string `json:"updateddate"` 
     
     Extra                    map[string]interface{} `json:"extra"`
@@ -118,7 +120,7 @@ func (p *RecordManager) GetQuery() string {
 
     var ret strings.Builder
 
-    ret.WriteString("select r_id, r_quarter, r_player, r_min, r_goal, r_assist, r_createddate, r_updateddate from record_tb")
+    ret.WriteString("select r_id, r_quarter, r_player, r_min, r_goal, r_assist, r_yellowcard, r_redcard, r_createddate, r_updateddate from record_tb")
 
     if p.Index != "" {
         ret.WriteString(" use index(")
@@ -227,11 +229,11 @@ func (p *RecordManager) Insert(item *Record) error {
     var res sql.Result
     var err error
     if item.Id > 0 {
-        query = "insert into record_tb (r_id, r_quarter, r_player, r_min, r_goal, r_assist, r_createddate, r_updateddate) values (?, ?, ?, ?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Id, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Createddate, item.Updateddate)
+        query = "insert into record_tb (r_id, r_quarter, r_player, r_min, r_goal, r_assist, r_yellowcard, r_redcard, r_createddate, r_updateddate) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Id, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Yellowcard, item.Redcard, item.Createddate, item.Updateddate)
     } else {
-        query = "insert into record_tb (r_quarter, r_player, r_min, r_goal, r_assist, r_createddate, r_updateddate) values (?, ?, ?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Createddate, item.Updateddate)
+        query = "insert into record_tb (r_quarter, r_player, r_min, r_goal, r_assist, r_yellowcard, r_redcard, r_createddate, r_updateddate) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Yellowcard, item.Redcard, item.Createddate, item.Updateddate)
     }
     
     if err == nil {
@@ -386,8 +388,8 @@ func (p *RecordManager) Update(item *Record) error {
     }
 	
 
-	query := "update record_tb set r_quarter = ?, r_player = ?, r_min = ?, r_goal = ?, r_assist = ?, r_createddate = ?, r_updateddate = ? where r_id = ?"
-	_, err := p.Exec(query, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Createddate, item.Updateddate, item.Id)
+	query := "update record_tb set r_quarter = ?, r_player = ?, r_min = ?, r_goal = ?, r_assist = ?, r_yellowcard = ?, r_redcard = ?, r_createddate = ?, r_updateddate = ? where r_id = ?"
+	_, err := p.Exec(query, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Yellowcard, item.Redcard, item.Createddate, item.Updateddate, item.Id)
 
     if err != nil {
         if p.Log {
@@ -430,6 +432,12 @@ func (p *RecordManager) UpdateWhere(columns []record.Params, args []interface{})
         initParams = append(initParams, v.Value)
         } else if v.Column == record.ColumnAssist {
         initQuery.WriteString("r_assist = ?")
+        initParams = append(initParams, v.Value)
+        } else if v.Column == record.ColumnYellowcard {
+        initQuery.WriteString("r_yellowcard = ?")
+        initParams = append(initParams, v.Value)
+        } else if v.Column == record.ColumnRedcard {
+        initQuery.WriteString("r_redcard = ?")
         initParams = append(initParams, v.Value)
         } else if v.Column == record.ColumnCreateddate {
         initQuery.WriteString("r_createddate = ?")
@@ -612,7 +620,7 @@ func (p *RecordManager) ReadRow(rows *sql.Rows) *Record {
     
 
     if rows.Next() {
-        err = rows.Scan(&item.Id, &item.Quarter, &item.Player, &item.Min, &item.Goal, &item.Assist, &item.Createddate, &item.Updateddate)
+        err = rows.Scan(&item.Id, &item.Quarter, &item.Player, &item.Min, &item.Goal, &item.Assist, &item.Yellowcard, &item.Redcard, &item.Createddate, &item.Updateddate)
         
         if item.Createddate == "0000-00-00 00:00:00" || item.Createddate == "1000-01-01 00:00:00" || item.Createddate == "9999-01-01 00:00:00" {
             item.Createddate = ""
@@ -655,7 +663,7 @@ func (p *RecordManager) ReadRows(rows *sql.Rows) []Record {
         var item Record
         
 
-        err := rows.Scan(&item.Id, &item.Quarter, &item.Player, &item.Min, &item.Goal, &item.Assist, &item.Createddate, &item.Updateddate)
+        err := rows.Scan(&item.Id, &item.Quarter, &item.Player, &item.Min, &item.Goal, &item.Assist, &item.Yellowcard, &item.Redcard, &item.Createddate, &item.Updateddate)
         if err != nil {
            if p.Log {
              log.Error().Str("error", err.Error()).Msg("SQL")
