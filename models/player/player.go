@@ -9,6 +9,7 @@ const (
     ColumnTeam
     ColumnName
     ColumnNumber
+    ColumnBirthdate
     ColumnPosition
     ColumnCreateddate
     ColumnUpdateddate

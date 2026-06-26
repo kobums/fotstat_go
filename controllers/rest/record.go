@@ -253,6 +253,8 @@ func (c *RecordController) UpdateStats(item *models.Record) {
 			{Column: record.ColumnMin, Value: item.Min},
 			{Column: record.ColumnGoal, Value: item.Goal},
 			{Column: record.ColumnAssist, Value: item.Assist},
+			{Column: record.ColumnYellowcard, Value: item.Yellowcard},
+			{Column: record.ColumnRedcard, Value: item.Redcard},
 		},
 		[]interface{}{models.Where{Column: "id", Value: item.Id, Compare: "="}},
 	)
