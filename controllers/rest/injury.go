@@ -15,13 +15,42 @@ type InjuryController struct {
 	controllers.Controller
 }
 
-// validDates 는 복귀일이 있으면 발생일 이후인지 확인한다. returndate 가 비어
+// validInjuryDates 는 복귀일이 있으면 발생일 이후인지 확인한다. returndate 가 비어
 // 있으면(아직 부상 중) 통과. 프런트에서도 막지만 API 직접 호출 방어 목적.
 func validInjuryDates(item *models.Injury) error {
 	if item.Returndate != "" && item.Startdate != "" && item.Returndate < item.Startdate {
 		return errors.New("returndate must be on or after startdate")
 	}
 	return nil
+}
+
+var errInjuryForbidden = errors.New("forbidden: player does not belong to your team")
+
+// currentUser 는 JwtAuthRequired 미들웨어가 세팅한 요청 사용자. 없으면 nil.
+func (c *InjuryController) currentUser() *models.User {
+	if c.Context == nil {
+		return nil
+	}
+	user, ok := c.Context.Locals("user").(*models.User)
+	if !ok {
+		return nil
+	}
+	return user
+}
+
+// ownsPlayer 는 playerId 소속 팀이 요청 사용자의 소유인지 확인한다.
+// 부상은 선수의 민감 정보라 모든 CRUD 에서 소유권을 검증한다 (IDOR 방지).
+func (c *InjuryController) ownsPlayer(conn *models.Connection, playerId int) bool {
+	user := c.currentUser()
+	if user == nil || playerId == 0 {
+		return false
+	}
+	player := models.NewPlayerManager(conn).Get(int64(playerId))
+	if player == nil {
+		return false
+	}
+	team := models.NewTeamManager(conn).Get(int64(player.Team))
+	return team != nil && int64(team.User) == user.Id
 }
 
 func (c *InjuryController) Read(id int64) {
@@ -32,7 +61,10 @@ func (c *InjuryController) Read(id int64) {
 	manager := models.NewInjuryManager(conn)
 	item := manager.Get(id)
 
-
+    if item != nil && !c.ownsPlayer(conn, item.Player) {
+        c.Error(errInjuryForbidden)
+        return
+    }
 
     c.Set("item", item)
 }
@@ -45,6 +77,14 @@ func (c *InjuryController) Index(page int, pagesize int) {
 	manager := models.NewInjuryManager(conn)
 
     var args []interface{}
+
+    // 소유권 강제: 클라이언트 필터와 무관하게 요청 사용자 소유 팀의 선수로 범위를 제한한다
+    user := c.currentUser()
+    if user == nil {
+        c.Error(errInjuryForbidden)
+        return
+    }
+    args = append(args, models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)})
 
     _player := c.Geti("player")
     if _player != 0 {
@@ -122,6 +162,14 @@ func (c *InjuryController) Count() {
 
     var args []interface{}
 
+    // 소유권 강제: Index 와 동일하게 요청 사용자 소유 팀으로 범위 제한
+    user := c.currentUser()
+    if user == nil {
+        c.Error(errInjuryForbidden)
+        return
+    }
+    args = append(args, models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)})
+
     _player := c.Geti("player")
     if _player != 0 {
         args = append(args, models.Where{Column:"player", Value:_player, Compare:"="})
@@ -150,6 +198,11 @@ func (c *InjuryController) Insert(item *models.Injury) {
 
 	conn := c.NewConnection()
 
+    if !c.ownsPlayer(conn, item.Player) {
+        c.Error(errInjuryForbidden)
+        return
+    }
+
 	manager := models.NewInjuryManager(conn)
 	err := manager.Insert(item)
     if err != nil {
@@ -175,6 +228,18 @@ func (c *InjuryController) Insertbatch(item *[]models.Injury) {
 
 	manager := models.NewInjuryManager(conn)
 
+    // Insert 와 동일한 검증을 배치에도 적용 — 전량 사전 검증 후 일괄 삽입해 부분 실패를 줄인다
+    for i := 0; i < rows; i++ {
+        if err := validInjuryDates(&((*item)[i])); err != nil {
+            c.Error(err)
+            return
+        }
+        if !c.ownsPlayer(conn, (*item)[i].Player) {
+            c.Error(errInjuryForbidden)
+            return
+        }
+    }
+
     for i := 0; i < rows; i++ {
 
 	    err := manager.Insert(&((*item)[i]))
@@ -196,6 +261,19 @@ func (c *InjuryController) Update(item *models.Injury) {
 	conn := c.NewConnection()
 
 	manager := models.NewInjuryManager(conn)
+
+    // 기존 레코드의 선수와 변경 후 선수 모두 내 소유여야 한다
+    // (타인 레코드 수정과 내 레코드를 타인 선수로 옮기는 것 둘 다 차단)
+    existing := manager.Get(item.Id)
+    if existing == nil {
+        c.Error(errors.New("injury not found"))
+        return
+    }
+    if !c.ownsPlayer(conn, existing.Player) || !c.ownsPlayer(conn, item.Player) {
+        c.Error(errInjuryForbidden)
+        return
+    }
+
     err := manager.Update(item)
     if err != nil {
         c.Set("code", "error")
@@ -211,6 +289,14 @@ func (c *InjuryController) Delete(item *models.Injury) {
 
 	manager := models.NewInjuryManager(conn)
 
+    existing := manager.Get(item.Id)
+    if existing == nil {
+        return
+    }
+    if !c.ownsPlayer(conn, existing.Player) {
+        c.Error(errInjuryForbidden)
+        return
+    }
 
 	err := manager.Delete(item.Id)
     if err != nil {
@@ -226,8 +312,19 @@ func (c *InjuryController) Deletebatch(item *[]models.Injury) {
 
 	manager := models.NewInjuryManager(conn)
 
+    // Insertbatch 와 동일하게 전량 사전 검증 후 일괄 삭제 — 중간 실패로 일부만 지워지는 것을 방지
     for _, v := range *item {
+        existing := manager.Get(v.Id)
+        if existing == nil {
+            continue  // 이미 없는 항목은 멱등 처리
+        }
+        if !c.ownsPlayer(conn, existing.Player) {
+            c.Error(errInjuryForbidden)
+            return
+        }
+    }
 
+    for _, v := range *item {
 
 	    err := manager.Delete(v.Id)
         if err != nil {
