@@ -21,8 +21,11 @@ func (c *PlayerController) Read(id int64) {
 	manager := models.NewPlayerManager(conn)
 	item := manager.Get(id)
 
-    
-    
+    if item != nil && !ownsTeam(conn, requestUser(&c.Controller), item.Team) {
+        c.Error(errForbidden)
+        return
+    }
+
     c.Set("item", item)
 }
 
@@ -34,10 +37,18 @@ func (c *PlayerController) Index(page int, pagesize int) {
 	manager := models.NewPlayerManager(conn)
 
     var args []interface{}
-    
+
+    // 소유권 강제: 요청 사용자 소유 팀의 선수만 조회된다
+    user := requestUser(&c.Controller)
+    if user == nil {
+        c.Error(errForbidden)
+        return
+    }
+    args = append(args, ownPlayerScope(user))
+
     _team := c.Geti("team")
     if _team != 0 {
-        args = append(args, models.Where{Column:"team", Value:_team, Compare:"="})    
+        args = append(args, models.Where{Column:"team", Value:_team, Compare:"="})
     }
     _name := c.Get("name")
     if _name != "" {
@@ -126,10 +137,18 @@ func (c *PlayerController) Count() {
 	manager := models.NewPlayerManager(conn)
 
     var args []interface{}
-    
+
+    // 소유권 강제: 요청 사용자 소유 팀의 선수만 조회된다
+    user := requestUser(&c.Controller)
+    if user == nil {
+        c.Error(errForbidden)
+        return
+    }
+    args = append(args, ownPlayerScope(user))
+
     _team := c.Geti("team")
     if _team != 0 {
-        args = append(args, models.Where{Column:"team", Value:_team, Compare:"="})    
+        args = append(args, models.Where{Column:"team", Value:_team, Compare:"="})
     }
     _name := c.Get("name")
     if _name != "" {
@@ -181,12 +200,15 @@ func (c *PlayerController) Count() {
 }
 
 func (c *PlayerController) Insert(item *models.Player) {
-    
-    
-    
 
 	conn := c.NewConnection()
-    
+
+    // 내 소유 팀에만 선수 등록 가능
+    if !ownsTeam(conn, requestUser(&c.Controller), item.Team) {
+        c.Error(errForbidden)
+        return
+    }
+
 	manager := models.NewPlayerManager(conn)
 	err := manager.Insert(item)
     if err != nil {
@@ -206,15 +228,22 @@ func (c *PlayerController) Insertbatch(item *[]models.Player) {
     }
 
     rows := len(*item)
-    
-    
-    
+
 	conn := c.NewConnection()
-    
+
 	manager := models.NewPlayerManager(conn)
 
+    // 전량 사전 검증 후 일괄 삽입
+    user := requestUser(&c.Controller)
     for i := 0; i < rows; i++ {
-        
+        if !ownsTeam(conn, user, (*item)[i].Team) {
+            c.Error(errForbidden)
+            return
+        }
+    }
+
+    for i := 0; i < rows; i++ {
+
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")    
@@ -225,13 +254,23 @@ func (c *PlayerController) Insertbatch(item *[]models.Player) {
 }
 
 func (c *PlayerController) Update(item *models.Player) {
-    
-    
-    
 
 	conn := c.NewConnection()
 
 	manager := models.NewPlayerManager(conn)
+
+    // 기존 선수의 팀과 변경 후 팀 모두 내 소유여야 한다
+    user := requestUser(&c.Controller)
+    existing := manager.Get(item.Id)
+    if existing == nil {
+        c.Error(errNotFound)
+        return
+    }
+    if !ownsTeam(conn, user, existing.Team) || !ownsTeam(conn, user, item.Team) {
+        c.Error(errForbidden)
+        return
+    }
+
     err := manager.Update(item)
     if err != nil {
         c.Set("code", "error")    
@@ -241,13 +280,21 @@ func (c *PlayerController) Update(item *models.Player) {
 }
 
 func (c *PlayerController) Delete(item *models.Player) {
-    
-    
+
+
     conn := c.NewConnection()
 
 	manager := models.NewPlayerManager(conn)
 
-    
+    existing := manager.Get(item.Id)
+    if existing == nil {
+        return   // 이미 없음 — 멱등 처리
+    }
+    if !ownsTeam(conn, requestUser(&c.Controller), existing.Team) {
+        c.Error(errForbidden)
+        return
+    }
+
 	err := manager.Delete(item.Id)
     if err != nil {
         c.Set("code", "error")    
@@ -262,12 +309,25 @@ func (c *PlayerController) Deletebatch(item *[]models.Player) {
 
 	manager := models.NewPlayerManager(conn)
 
+    // 전량 사전 검증 후 일괄 삭제
+    user := requestUser(&c.Controller)
     for _, v := range *item {
-        
-    
+        existing := manager.Get(v.Id)
+        if existing == nil {
+            continue
+        }
+        if !ownsTeam(conn, user, existing.Team) {
+            c.Error(errForbidden)
+            return
+        }
+    }
+
+    for _, v := range *item {
+
+
 	    err := manager.Delete(v.Id)
         if err != nil {
-            c.Set("code", "error")    
+            c.Set("code", "error")
             c.Set("error", err)
             return
         }

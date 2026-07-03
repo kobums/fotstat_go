@@ -14,15 +14,23 @@ type UserController struct {
 }
 
 func (c *UserController) Read(id int64) {
-    
-    
+
+    // 본인 계정만 조회 가능 — 타인 이메일/비밀번호 해시 노출 차단
+    user := requestUser(&c.Controller)
+    if user == nil || user.Id != id {
+        c.Error(errForbidden)
+        return
+    }
+
 	conn := c.NewConnection()
 
 	manager := models.NewUserManager(conn)
 	item := manager.Get(id)
 
-    
-    
+    if item != nil {
+        item.Password = ""   // 해시라도 응답에 노출하지 않는다
+    }
+
     c.Set("item", item)
 }
 
@@ -34,19 +42,23 @@ func (c *UserController) Index(page int, pagesize int) {
 	manager := models.NewUserManager(conn)
 
     var args []interface{}
-    
+
+    // 본인 계정으로 강제 스코프. password LIKE 검색 파라미터는 오라클로 악용될 수 있어 제거
+    user := requestUser(&c.Controller)
+    if user == nil {
+        c.Error(errForbidden)
+        return
+    }
+    args = append(args, ownUserScope(user))
+
     _email := c.Get("email")
     if _email != "" {
         args = append(args, models.Where{Column:"email", Value:_email, Compare:"like"})
     }
-    _password := c.Get("password")
-    if _password != "" {
-        args = append(args, models.Where{Column:"password", Value:_password, Compare:"like"})
-    }
     _name := c.Get("name")
     if _name != "" {
         args = append(args, models.Where{Column:"name", Value:_name, Compare:"="})
-        
+
     }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")
@@ -106,6 +118,9 @@ func (c *UserController) Index(page int, pagesize int) {
     }
     
 	items := manager.Find(args)
+    for i := range items {
+        items[i].Password = ""   // 해시라도 응답에 노출하지 않는다
+    }
 	c.Set("items", items)
 
     if page == 1 {
@@ -115,29 +130,32 @@ func (c *UserController) Index(page int, pagesize int) {
 }
 
 func (c *UserController) Count() {
-    
-    
+
+
 	conn := c.NewConnection()
 
 	manager := models.NewUserManager(conn)
 
     var args []interface{}
-    
+
+    // 본인 계정으로 강제 스코프 (Index 와 동일)
+    user := requestUser(&c.Controller)
+    if user == nil {
+        c.Error(errForbidden)
+        return
+    }
+    args = append(args, ownUserScope(user))
+
     _email := c.Get("email")
     if _email != "" {
         args = append(args, models.Where{Column:"email", Value:_email, Compare:"like"})
-        
-    }
-    _password := c.Get("password")
-    if _password != "" {
-        args = append(args, models.Where{Column:"password", Value:_password, Compare:"like"})
-        
+
     }
     _name := c.Get("name")
     if _name != "" {
         args = append(args, models.Where{Column:"name", Value:_name, Compare:"="})
-        
-        
+
+
     }
     _startcreateddate := c.Get("startcreateddate")
     _endcreateddate := c.Get("endcreateddate")
@@ -232,9 +250,14 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
 }
 
 func (c *UserController) Update(item *models.UserUpdate) {
-    
-    
-    
+
+    // 본인 계정만 수정 가능
+    user := requestUser(&c.Controller)
+    if user == nil || user.Id != item.Id {
+        c.Error(errForbidden)
+        return
+    }
+
     if item.Password != "" {
         hashed, err := jwt.GeneratePasswd(item.Password)
         if err == nil {
@@ -255,13 +278,19 @@ func (c *UserController) Update(item *models.UserUpdate) {
 }
 
 func (c *UserController) Delete(item *models.User) {
-    
-    
+
+    // 본인 계정만 삭제 가능 (정식 탈퇴 흐름은 /api/account 라우트 사용)
+    user := requestUser(&c.Controller)
+    if user == nil || user.Id != item.Id {
+        c.Error(errForbidden)
+        return
+    }
+
     conn := c.NewConnection()
 
 	manager := models.NewUserManager(conn)
 
-    
+
 	err := manager.Delete(item.Id)
     if err != nil {
         c.Set("code", "error")    
@@ -276,9 +305,18 @@ func (c *UserController) Deletebatch(item *[]models.User) {
 
 	manager := models.NewUserManager(conn)
 
+    // 본인 계정만 삭제 가능
+    user := requestUser(&c.Controller)
     for _, v := range *item {
-        
-    
+        if user == nil || user.Id != v.Id {
+            c.Error(errForbidden)
+            return
+        }
+    }
+
+    for _, v := range *item {
+
+
 	    err := manager.Delete(v.Id)
         if err != nil {
             c.Set("code", "error")    
