@@ -7,11 +7,52 @@ import (
 	"fotstat/models"
 	"fotstat/models/record"
 
+	"errors"
+	"fmt"
 	"strings"
 )
 
 type RecordController struct {
 	controllers.Controller
+}
+
+// injuryConflict reports whether the given player is injured on the match date
+// that the given quarter belongs to. Record 입력은 부상 기간(i_startdate ~
+// i_returndate, returndate NULL 이면 아직 부상 중)에 걸치면 차단한다.
+// 반환된 error 가 nil 이 아니면 그 선수는 해당 경기일에 부상 중이다.
+func (c *RecordController) injuryConflict(conn *models.Connection, quarter int, player int) error {
+	if quarter == 0 || player == 0 {
+		return nil
+	}
+
+	q := models.NewQuarterManager(conn).Get(int64(quarter))
+	if q == nil {
+		return nil
+	}
+
+	m := models.NewMatchManager(conn).Get(int64(q.Match))
+	if m == nil || m.Matchdate == "" {
+		return nil
+	}
+
+	// m_matchdate 는 DATETIME, injury 날짜는 DATE 이므로 날짜 부분만 비교한다.
+	matchdate := m.Matchdate
+	if len(matchdate) >= 10 {
+		matchdate = matchdate[:10]
+	}
+
+	injuryManager := models.NewInjuryManager(conn)
+	cnt := injuryManager.Count([]interface{}{
+		models.Where{Column: "player", Value: player, Compare: "="},
+		models.Custom{Query: fmt.Sprintf("i_startdate <= '%s'", matchdate)},
+		models.Custom{Query: fmt.Sprintf("(i_returndate is null or i_returndate >= '%s')", matchdate)},
+	})
+
+	if cnt > 0 {
+		return errors.New("injured player cannot be recorded for this match")
+	}
+
+	return nil
 }
 
 func (c *RecordController) Read(id int64) {
@@ -191,11 +232,17 @@ func (c *RecordController) Insert(item *models.Record) {
     
 
 	conn := c.NewConnection()
-    
+
+    if err := c.injuryConflict(conn, item.Quarter, item.Player); err != nil {
+        c.Set("code", "error")
+        c.Set("error", err.Error())
+        return
+    }
+
 	manager := models.NewRecordManager(conn)
 	err := manager.Insert(item)
     if err != nil {
-        c.Set("code", "error")    
+        c.Set("code", "error")
         c.Set("error", err)
         return
     }
@@ -219,10 +266,16 @@ func (c *RecordController) Insertbatch(item *[]models.Record) {
 	manager := models.NewRecordManager(conn)
 
     for i := 0; i < rows; i++ {
-        
+
+        if err := c.injuryConflict(conn, (*item)[i].Quarter, (*item)[i].Player); err != nil {
+            c.Set("code", "error")
+            c.Set("error", err.Error())
+            return
+        }
+
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
-            c.Set("code", "error")    
+            c.Set("code", "error")
             c.Set("error", err)
             return
         }
@@ -230,11 +283,17 @@ func (c *RecordController) Insertbatch(item *[]models.Record) {
 }
 
 func (c *RecordController) Update(item *models.Record) {
-    
-    
-    
+
+
+
 
 	conn := c.NewConnection()
+
+    if err := c.injuryConflict(conn, item.Quarter, item.Player); err != nil {
+        c.Set("code", "error")
+        c.Set("error", err.Error())
+        return
+    }
 
 	manager := models.NewRecordManager(conn)
     err := manager.Update(item)
@@ -247,6 +306,18 @@ func (c *RecordController) Update(item *models.Record) {
 
 func (c *RecordController) UpdateStats(item *models.Record) {
 	conn := c.NewConnection()
+
+	// 부상 기간 중인 선수는 기존 기록 수정도 차단(입력과 동일 정책).
+	// body에는 quarter/player가 없으므로 기존 record를 id로 조회해 검증한다.
+	existing := models.NewRecordManager(conn).Get(item.Id)
+	if existing != nil {
+		if err := c.injuryConflict(conn, existing.Quarter, existing.Player); err != nil {
+			c.Set("code", "error")
+			c.Set("error", err.Error())
+			return
+		}
+	}
+
 	manager := models.NewRecordManager(conn)
 	err := manager.UpdateWhere(
 		[]record.Params{

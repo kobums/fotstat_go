@@ -49,7 +49,8 @@ fotstat_go/
 │       ├── player.go
 │       ├── match.go
 │       ├── quarter.go           # PUT /quarter/awaygoals 포함
-│       ├── record.go            # PUT /record/stats 포함
+│       ├── record.go            # PUT /record/stats 포함 (부상 기간 입력 차단)
+│       ├── injury.go            # 부상 이력 CRUD
 │       └── upload.go
 ├── controllers/
 │   └── rest/                    # 도메인별 비즈니스 로직
@@ -58,7 +59,8 @@ fotstat_go/
 │       ├── player.go
 │       ├── match.go
 │       ├── quarter.go
-│       └── record.go
+│       ├── record.go
+│       └── injury.go
 ├── models/                      # 도메인 모델 및 DB 연결
 │   ├── db.go
 │   ├── cache.go
@@ -67,7 +69,8 @@ fotstat_go/
 │   ├── player.go
 │   ├── match.go
 │   ├── quarter.go
-│   └── record.go
+│   ├── record.go
+│   └── injury.go
 ├── global/
 │   ├── config/                  # 환경 설정 로더
 │   ├── jwt/                     # JWT 생성 및 bcrypt 유틸리티
@@ -145,6 +148,18 @@ fotstat_go/
 
 > **부분 업데이트 엔드포인트** (`/awaygoals`, `/stats`): 전체 UPDATE 시 다른 필드가 0으로 덮어씌워지는 문제를 방지하기 위해 지정 컬럼만 업데이트합니다.
 
+### Injury (부상 이력)
+
+| Method | Path | 설명 |
+|---|---|---|
+| `GET` | `/api/injury?team={id}` | 팀 부상 이력 (active + 과거) |
+| `GET` | `/api/injury?team={id}&active=1` | 현재 부상 중인 이력만 (복귀일 NULL) |
+| `POST` | `/api/injury` | 부상 등록 |
+| `PUT` | `/api/injury` | 부상 수정 (복귀일 입력 등) |
+| `DELETE` | `/api/injury` | 부상 삭제 |
+
+> **부상 기간 record 차단:** 경기일이 부상 기간(`i_startdate` ~ `i_returndate`, NULL이면 부상 중)에 걸치면 `POST /record`·`PUT /record`·`PUT /record/stats`·batch 저장을 거부합니다. 부상 날짜 순서(`startdate ≤ returndate`)도 서버에서 검증합니다.
+
 ---
 
 ## 응답 형식
@@ -186,6 +201,8 @@ mysql -u root -p fotstat < go-basic.sql
 mysql -u root -p fotstat < migration_add_quarter_duration.sql
 mysql -u root -p fotstat < migration_add_quarter_awaygoals.sql
 ```
+
+> 전체 스키마·마이그레이션은 모노레포 `db/`에서 관리한다. 부상 기능은 `db/migration_009_add_injury.sql`(injury_tb) 적용이 필요하다.
 
 ### 3. 실행
 
