@@ -24,34 +24,8 @@ func validInjuryDates(item *models.Injury) error {
 	return nil
 }
 
-var errInjuryForbidden = errors.New("forbidden: player does not belong to your team")
-
-// currentUser 는 JwtAuthRequired 미들웨어가 세팅한 요청 사용자. 없으면 nil.
-func (c *InjuryController) currentUser() *models.User {
-	if c.Context == nil {
-		return nil
-	}
-	user, ok := c.Context.Locals("user").(*models.User)
-	if !ok {
-		return nil
-	}
-	return user
-}
-
-// ownsPlayer 는 playerId 소속 팀이 요청 사용자의 소유인지 확인한다.
+// 소유권 검증은 ownership.go 의 공용 헬퍼(requestUser/ownsPlayer/ownInjuryScope)를 사용한다.
 // 부상은 선수의 민감 정보라 모든 CRUD 에서 소유권을 검증한다 (IDOR 방지).
-func (c *InjuryController) ownsPlayer(conn *models.Connection, playerId int) bool {
-	user := c.currentUser()
-	if user == nil || playerId == 0 {
-		return false
-	}
-	player := models.NewPlayerManager(conn).Get(int64(playerId))
-	if player == nil {
-		return false
-	}
-	team := models.NewTeamManager(conn).Get(int64(player.Team))
-	return team != nil && int64(team.User) == user.Id
-}
 
 func (c *InjuryController) Read(id int64) {
 
@@ -61,8 +35,8 @@ func (c *InjuryController) Read(id int64) {
 	manager := models.NewInjuryManager(conn)
 	item := manager.Get(id)
 
-    if item != nil && !c.ownsPlayer(conn, item.Player) {
-        c.Error(errInjuryForbidden)
+    if item != nil && !ownsPlayer(conn, requestUser(&c.Controller), item.Player) {
+        c.Error(errForbidden)
         return
     }
 
@@ -79,12 +53,12 @@ func (c *InjuryController) Index(page int, pagesize int) {
     var args []interface{}
 
     // 소유권 강제: 클라이언트 필터와 무관하게 요청 사용자 소유 팀의 선수로 범위를 제한한다
-    user := c.currentUser()
+    user := requestUser(&c.Controller)
     if user == nil {
-        c.Error(errInjuryForbidden)
+        c.Error(errForbidden)
         return
     }
-    args = append(args, models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)})
+    args = append(args, ownInjuryScope(user))
 
     _player := c.Geti("player")
     if _player != 0 {
@@ -163,12 +137,12 @@ func (c *InjuryController) Count() {
     var args []interface{}
 
     // 소유권 강제: Index 와 동일하게 요청 사용자 소유 팀으로 범위 제한
-    user := c.currentUser()
+    user := requestUser(&c.Controller)
     if user == nil {
-        c.Error(errInjuryForbidden)
+        c.Error(errForbidden)
         return
     }
-    args = append(args, models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)})
+    args = append(args, ownInjuryScope(user))
 
     _player := c.Geti("player")
     if _player != 0 {
@@ -198,8 +172,8 @@ func (c *InjuryController) Insert(item *models.Injury) {
 
 	conn := c.NewConnection()
 
-    if !c.ownsPlayer(conn, item.Player) {
-        c.Error(errInjuryForbidden)
+    if !ownsPlayer(conn, requestUser(&c.Controller), item.Player) {
+        c.Error(errForbidden)
         return
     }
 
@@ -234,8 +208,8 @@ func (c *InjuryController) Insertbatch(item *[]models.Injury) {
             c.Error(err)
             return
         }
-        if !c.ownsPlayer(conn, (*item)[i].Player) {
-            c.Error(errInjuryForbidden)
+        if !ownsPlayer(conn, requestUser(&c.Controller), (*item)[i].Player) {
+            c.Error(errForbidden)
             return
         }
     }
@@ -266,11 +240,11 @@ func (c *InjuryController) Update(item *models.Injury) {
     // (타인 레코드 수정과 내 레코드를 타인 선수로 옮기는 것 둘 다 차단)
     existing := manager.Get(item.Id)
     if existing == nil {
-        c.Error(errors.New("injury not found"))
+        c.Error(errNotFound)
         return
     }
-    if !c.ownsPlayer(conn, existing.Player) || !c.ownsPlayer(conn, item.Player) {
-        c.Error(errInjuryForbidden)
+    if !ownsPlayer(conn, requestUser(&c.Controller), existing.Player) || !ownsPlayer(conn, requestUser(&c.Controller), item.Player) {
+        c.Error(errForbidden)
         return
     }
 
@@ -293,8 +267,8 @@ func (c *InjuryController) Delete(item *models.Injury) {
     if existing == nil {
         return
     }
-    if !c.ownsPlayer(conn, existing.Player) {
-        c.Error(errInjuryForbidden)
+    if !ownsPlayer(conn, requestUser(&c.Controller), existing.Player) {
+        c.Error(errForbidden)
         return
     }
 
@@ -318,8 +292,8 @@ func (c *InjuryController) Deletebatch(item *[]models.Injury) {
         if existing == nil {
             continue  // 이미 없는 항목은 멱등 처리
         }
-        if !c.ownsPlayer(conn, existing.Player) {
-            c.Error(errInjuryForbidden)
+        if !ownsPlayer(conn, requestUser(&c.Controller), existing.Player) {
+            c.Error(errForbidden)
             return
         }
     }
