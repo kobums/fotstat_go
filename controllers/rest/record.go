@@ -17,8 +17,9 @@ type RecordController struct {
 }
 
 // injuryConflict reports whether the given player is injured on the match date
-// that the given quarter belongs to. Record 입력은 부상 기간(i_startdate ~
-// i_returndate, returndate NULL 이면 아직 부상 중)에 걸치면 차단한다.
+// that the given quarter belongs to. Record 입력은 부상 기간에 걸치면 차단하되,
+// 발생일 당일 경기는 허용한다(경기 중 부상 = 그날까지는 뛴 것). 즉 차단 범위는
+// 발생일 다음 날부터 복귀일까지(i_returndate NULL 이면 아직 부상 중 = 계속 차단).
 // 반환된 error 가 nil 이 아니면 그 선수는 해당 경기일에 부상 중이다.
 func (c *RecordController) injuryConflict(conn *models.Connection, quarter int, player int) error {
 	if quarter == 0 || player == 0 {
@@ -44,7 +45,7 @@ func (c *RecordController) injuryConflict(conn *models.Connection, quarter int, 
 	injuryManager := models.NewInjuryManager(conn)
 	cnt := injuryManager.Count([]interface{}{
 		models.Where{Column: "player", Value: player, Compare: "="},
-		models.Custom{Query: fmt.Sprintf("i_startdate <= '%s'", matchdate)},
+		models.Custom{Query: fmt.Sprintf("i_startdate < '%s'", matchdate)},
 		models.Custom{Query: fmt.Sprintf("(i_returndate is null or i_returndate >= '%s')", matchdate)},
 	})
 
