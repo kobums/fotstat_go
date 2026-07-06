@@ -266,7 +266,9 @@ func (c *RecordController) Insert(item *models.Record) {
     }
 
 	manager := models.NewRecordManager(conn)
-	err := manager.Insert(item)
+	// (quarter, player) 는 UNIQUE — 이미 행이 있으면 삽입 대신 갱신되어
+	// 클라이언트 create 중복 호출(레이스·교차 입력)에도 행이 늘지 않는다
+	err := manager.Upsert(item)
     if err != nil {
         c.Set("code", "error")
         c.Set("error", err)
@@ -307,7 +309,7 @@ func (c *RecordController) Insertbatch(item *[]models.Record) {
 
     for i := 0; i < rows; i++ {
 
-	    err := manager.Insert(&((*item)[i]))
+	    err := manager.Upsert(&((*item)[i]))
         if err != nil {
             c.Set("code", "error")
             c.Set("error", err)
@@ -346,8 +348,13 @@ func (c *RecordController) Update(item *models.Record) {
 
     err := manager.Update(item)
     if err != nil {
-        c.Set("code", "error")    
-        c.Set("error", err)
+        c.Set("code", "error")
+        // uq_record_quarter_player 충돌 — 원본 DB 에러(제약명 등)를 클라이언트에 노출하지 않는다
+        if strings.Contains(err.Error(), "Duplicate entry") {
+            c.Set("error", "record already exists for this quarter and player")
+        } else {
+            c.Set("error", err)
+        }
         return
     }
 }
