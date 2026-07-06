@@ -249,6 +249,47 @@ func (p *RecordManager) Insert(item *Record) error {
     return err
 }
 
+// Upsert 는 (r_quarter, r_player) UNIQUE 키 기준으로 없으면 삽입, 있으면
+// 기존 행의 스탯 컬럼을 갱신한다 (migration_010). 클라이언트가 create 를
+// 중복 호출해도 행이 늘어나지 않고 마지막 값으로 수렴한다.
+// last_insert_id(r_id) 트릭으로 갱신 경로에서도 GetIdentity 가 기존 행 id 를 돌려준다.
+func (p *RecordManager) Upsert(item *Record) error {
+    if !p.Conn.IsConnect() {
+        return errors.New("Connection Error")
+    }
+
+    if item.Createddate == "" {
+        t := time.Now().UTC().Add(time.Hour * 9)
+        item.Createddate = fmt.Sprintf("%04d-%02d-%02d %02d:%02d:%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+    }
+
+    if item.Updateddate == "" {
+       item.Updateddate = "1000-01-01 00:00:00"
+    }
+
+    query := "insert into record_tb (r_quarter, r_player, r_min, r_goal, r_assist, r_yellowcard, r_redcard, r_createddate, r_updateddate) values (?, ?, ?, ?, ?, ?, ?, ?, ?)" +
+        " on duplicate key update" +
+        " r_id = last_insert_id(r_id)," +
+        " r_min = values(r_min)," +
+        " r_goal = values(r_goal)," +
+        " r_assist = values(r_assist)," +
+        " r_yellowcard = values(r_yellowcard)," +
+        " r_redcard = values(r_redcard)," +
+        " r_updateddate = current_timestamp"
+    res, err := p.Exec(query, item.Quarter, item.Player, item.Min, item.Goal, item.Assist, item.Yellowcard, item.Redcard, item.Createddate, item.Updateddate)
+
+    if err == nil {
+        p.Result = &res
+    } else {
+        if p.Log {
+          log.Error().Str("error", err.Error()).Msg("SQL")
+        }
+        p.Result = nil
+    }
+
+    return err
+}
+
 func (p *RecordManager) Delete(id int64) error {
     if !p.Conn.IsConnect() {
         return errors.New("Connection Error")
