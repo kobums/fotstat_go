@@ -195,6 +195,13 @@ func (c *TeamController) Insert(item *models.Team) {
     }
     item.User = int(user.Id)
 
+    // 쿼터 기본 시간 미지정(구버전 클라이언트 포함) 시 45분, 상한 120분 (클라이언트 검증과 동일 범위)
+    if item.Duration <= 0 {
+        item.Duration = 45
+    } else if item.Duration > 120 {
+        item.Duration = 120
+    }
+
 	conn := c.NewConnection()
 
 	manager := models.NewTeamManager(conn)
@@ -229,6 +236,11 @@ func (c *TeamController) Insertbatch(item *[]models.Team) {
 
     for i := 0; i < rows; i++ {
         (*item)[i].User = int(user.Id)   // 소유자 서버 강제 지정
+        if (*item)[i].Duration <= 0 {
+            (*item)[i].Duration = 45
+        } else if (*item)[i].Duration > 120 {
+            (*item)[i].Duration = 120
+        }
 
 	    err := manager.Insert(&((*item)[i]))
         if err != nil {
@@ -257,6 +269,13 @@ func (c *TeamController) Update(item *models.Team) {
         return
     }
     item.User = existing.User
+
+    // duration 미전송(구버전 클라이언트) 시 기존 값 유지 — 0으로 덮어쓰기 방지. 상한 120분
+    if item.Duration <= 0 {
+        item.Duration = existing.Duration
+    } else if item.Duration > 120 {
+        item.Duration = 120
+    }
 
     err := manager.Update(item)
     if err != nil {

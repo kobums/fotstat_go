@@ -8,6 +8,7 @@ const (
     ColumnId
     ColumnUser
     ColumnName
+    ColumnDuration
     ColumnCreateddate
     ColumnUpdateddate
 )
