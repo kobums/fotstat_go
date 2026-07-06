@@ -17,11 +17,12 @@ import (
 
 type Team struct {
             
-    Id                int64 `json:"id"`         
-    User                int `json:"user"`         
-    Name                string `json:"name"`         
-    Createddate                string `json:"createddate"`         
-    Updateddate                string `json:"updateddate"` 
+    Id                int64 `json:"id"`
+    User                int `json:"user"`
+    Name                string `json:"name"`
+    Duration                int `json:"duration"`
+    Createddate                string `json:"createddate"`
+    Updateddate                string `json:"updateddate"`
     
     Extra                    map[string]interface{} `json:"extra"`
 }
@@ -115,7 +116,7 @@ func (p *TeamManager) GetQuery() string {
 
     var ret strings.Builder
 
-    ret.WriteString("select t_id, t_user, t_name, t_createddate, t_updateddate from team_tb")
+    ret.WriteString("select t_id, t_user, t_name, t_duration, t_createddate, t_updateddate from team_tb")
 
     if p.Index != "" {
         ret.WriteString(" use index(")
@@ -224,11 +225,11 @@ func (p *TeamManager) Insert(item *Team) error {
     var res sql.Result
     var err error
     if item.Id > 0 {
-        query = "insert into team_tb (t_id, t_user, t_name, t_createddate, t_updateddate) values (?, ?, ?, ?, ?)"
-        res, err = p.Exec(query, item.Id, item.User, item.Name, item.Createddate, item.Updateddate)
+        query = "insert into team_tb (t_id, t_user, t_name, t_duration, t_createddate, t_updateddate) values (?, ?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.Id, item.User, item.Name, item.Duration, item.Createddate, item.Updateddate)
     } else {
-        query = "insert into team_tb (t_user, t_name, t_createddate, t_updateddate) values (?, ?, ?, ?)"
-        res, err = p.Exec(query, item.User, item.Name, item.Createddate, item.Updateddate)
+        query = "insert into team_tb (t_user, t_name, t_duration, t_createddate, t_updateddate) values (?, ?, ?, ?, ?)"
+        res, err = p.Exec(query, item.User, item.Name, item.Duration, item.Createddate, item.Updateddate)
     }
     
     if err == nil {
@@ -383,8 +384,8 @@ func (p *TeamManager) Update(item *Team) error {
     }
 	
 
-	query := "update team_tb set t_user = ?, t_name = ?, t_createddate = ?, t_updateddate = ? where t_id = ?"
-	_, err := p.Exec(query, item.User, item.Name, item.Createddate, item.Updateddate, item.Id)
+	query := "update team_tb set t_user = ?, t_name = ?, t_duration = ?, t_createddate = ?, t_updateddate = ? where t_id = ?"
+	_, err := p.Exec(query, item.User, item.Name, item.Duration, item.Createddate, item.Updateddate, item.Id)
 
     if err != nil {
         if p.Log {
@@ -418,6 +419,9 @@ func (p *TeamManager) UpdateWhere(columns []team.Params, args []interface{}) err
         initParams = append(initParams, v.Value)
         } else if v.Column == team.ColumnName {
         initQuery.WriteString("t_name = ?")
+        initParams = append(initParams, v.Value)
+        } else if v.Column == team.ColumnDuration {
+        initQuery.WriteString("t_duration = ?")
         initParams = append(initParams, v.Value)
         } else if v.Column == team.ColumnCreateddate {
         initQuery.WriteString("t_createddate = ?")
@@ -549,7 +553,7 @@ func (p *TeamManager) ReadRow(rows *sql.Rows) *Team {
     
 
     if rows.Next() {
-        err = rows.Scan(&item.Id, &item.User, &item.Name, &item.Createddate, &item.Updateddate)
+        err = rows.Scan(&item.Id, &item.User, &item.Name, &item.Duration, &item.Createddate, &item.Updateddate)
         
         if item.Createddate == "0000-00-00 00:00:00" || item.Createddate == "1000-01-01 00:00:00" || item.Createddate == "9999-01-01 00:00:00" {
             item.Createddate = ""
@@ -592,7 +596,7 @@ func (p *TeamManager) ReadRows(rows *sql.Rows) []Team {
         var item Team
         
 
-        err := rows.Scan(&item.Id, &item.User, &item.Name, &item.Createddate, &item.Updateddate)
+        err := rows.Scan(&item.Id, &item.User, &item.Name, &item.Duration, &item.Createddate, &item.Updateddate)
         if err != nil {
            if p.Log {
              log.Error().Str("error", err.Error()).Msg("SQL")
