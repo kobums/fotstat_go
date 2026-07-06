@@ -1,14 +1,13 @@
-version: "3"
-
 services:
-  backend:
+  fotstat_go:
     restart: always
     build: .
     platform: linux/amd64
-    image: kobums/gowoobro_go:latest
+    image: kobums/fotstat_go:latest
+    container_name: fotstat_go
     ports:
       - "8009:8009"
     env_file:
       - .env.yml
     volumes:
-      - ./webdata:/usr/local/main/webdata
+      - ./webdata:/root/webdata
