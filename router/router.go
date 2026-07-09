@@ -64,4 +64,5 @@ func SetRouter(r *fiber.App) {
 	routers.SetupQuarterRoutes(apiGroup)
 	routers.SetupRecordRoutes(apiGroup)
 	routers.SetupTeamRoutes(apiGroup)
+	routers.SetupReportRoutes(apiGroup)
 }
