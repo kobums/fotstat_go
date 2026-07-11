@@ -4,6 +4,7 @@ package rest
 // 모든 도메인은 team_tb.t_user 를 뿌리로 하는 소유 체인을 가진다:
 //   team ← player ← injury
 //   team ← match ← quarter ← record
+//   team ← training ← attendance
 // 화면에서 타 팀 리소스를 숨기는 것과 별개로, API 직접 호출을 서버가 거부해야 한다.
 
 import (
@@ -70,6 +71,32 @@ func ownsQuarter(conn *models.Connection, user *models.User, quarterId int) bool
 	return ownsMatch(conn, user, quarter.Match)
 }
 
+func ownsTraining(conn *models.Connection, user *models.User, trainingId int) bool {
+	if user == nil || trainingId == 0 {
+		return false
+	}
+	training := models.NewTrainingManager(conn).Get(int64(trainingId))
+	if training == nil {
+		return false
+	}
+	return ownsTeam(conn, user, training.Team)
+}
+
+// ownsAttendanceTarget 은 attendance 대상(훈련, 선수)이 모두 요청 사용자 소유이면서
+// 선수가 그 훈련의 팀 소속인지 확인한다. ownsRecordTarget 과 같은 이유로
+// 다른 팀 선수의 참석이 섞여 통계가 오염되는 것을 막는다.
+func ownsAttendanceTarget(conn *models.Connection, user *models.User, trainingId int, playerId int) bool {
+	if user == nil || trainingId == 0 || playerId == 0 {
+		return false
+	}
+	training := models.NewTrainingManager(conn).Get(int64(trainingId))
+	if training == nil || !ownsTeam(conn, user, training.Team) {
+		return false
+	}
+	player := models.NewPlayerManager(conn).Get(int64(playerId))
+	return player != nil && player.Team == training.Team
+}
+
 // ownsRecordTarget 은 record 대상(쿼터, 선수)이 모두 요청 사용자 소유이면서
 // 선수가 그 쿼터가 속한 경기의 팀 소속인지 확인한다. 같은 사용자가 여러 팀을
 // 가질 때 다른 팀 선수의 기록이 섞여 통계가 오염되는 것을 막는다.
@@ -118,4 +145,12 @@ func ownUserScope(user *models.User) models.Custom {
 
 func ownInjuryScope(user *models.User) models.Custom {
 	return models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)}
+}
+
+func ownTrainingScope(user *models.User) models.Custom {
+	return models.Custom{Query: fmt.Sprintf("tr_team in (select t_id from team_tb where t_user = %d)", user.Id)}
+}
+
+func ownAttendanceScope(user *models.User) models.Custom {
+	return models.Custom{Query: fmt.Sprintf("a_training in (select tr_id from training_tb join team_tb on tr_team = t_id where t_user = %d)", user.Id)}
 }
