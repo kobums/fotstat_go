@@ -3,6 +3,7 @@ package rest
 // 리소스 소유권 검증 공용 헬퍼 (IDOR 방지).
 // 모든 도메인은 team_tb.t_user 를 뿌리로 하는 소유 체인을 가진다:
 //   team ← player ← injury
+//   team ← player ← inbody
 //   team ← match ← quarter ← record
 //   team ← training ← attendance
 // 화면에서 타 팀 리소스를 숨기는 것과 별개로, API 직접 호출을 서버가 거부해야 한다.
@@ -145,6 +146,10 @@ func ownUserScope(user *models.User) models.Custom {
 
 func ownInjuryScope(user *models.User) models.Custom {
 	return models.Custom{Query: fmt.Sprintf("i_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)}
+}
+
+func ownInbodyScope(user *models.User) models.Custom {
+	return models.Custom{Query: fmt.Sprintf("ib_player in (select p_id from player_tb join team_tb on p_team = t_id where t_user = %d)", user.Id)}
 }
 
 func ownTrainingScope(user *models.User) models.Custom {
