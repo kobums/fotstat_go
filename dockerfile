@@ -24,8 +24,8 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/main .
 
-# Copying .env.yml to the CURRENT working directory (/root/)
-COPY .env.yml .env.yml
+# .env.yml 은 이미지에 굽지 않는다 — 비밀값이 공개 레지스트리에 노출되므로
+# 운영 서버 compose 가 /data/fotstat_go/.env.yml 을 /root/.env.yml 로 마운트한다
 
 # Creating webdata directory in the CURRENT working directory
 RUN mkdir -p webdata
