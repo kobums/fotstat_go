@@ -38,8 +38,8 @@ func (c *AttendanceController) trainingInjuryConflict(conn *models.Connection, t
 	injuryManager := models.NewInjuryManager(conn)
 	cnt := injuryManager.Count([]interface{}{
 		models.Where{Column: "player", Value: player, Compare: "="},
-		models.Custom{Query: fmt.Sprintf("i_startdate < '%s'", trainingdate)},
-		models.Custom{Query: fmt.Sprintf("(i_returndate is null or i_returndate >= '%s')", trainingdate)},
+		models.Custom{Query: "i_startdate < ?", Params: []interface{}{trainingdate}},
+		models.Custom{Query: "(i_returndate is null or i_returndate >= ?)", Params: []interface{}{trainingdate}},
 	})
 
 	if cnt > 0 {
