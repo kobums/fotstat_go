@@ -29,7 +29,9 @@ var JwtAuthRequired = func(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	if c.Method() == "POST" && len(u.Path) >= 9 && u.Path[:9] == "/api/user" {
+	// 비로그인 가입은 POST /api/user 만 허용한다 (예전 접두사 비교는 /api/user/batch,
+	// /api/user/count 까지 무인증으로 열어 이메일 존재 여부 조회가 가능했다).
+	if c.Method() == "POST" && u.Path == "/api/user" {
 		return c.Next()
 	}
 
@@ -39,6 +41,27 @@ var JwtAuthRequired = func(c *fiber.Ctx) error {
 		"code":    "error",
 		"message": "unauthorized",
 	})
+}
+
+// jwtLoginBody 는 POST /api/jwt 본문. JSON 과 form(x-www-form-urlencoded,
+// multipart) 모두 받는다.
+type jwtLoginBody struct {
+	Email    string `json:"email" form:"email"`
+	Password string `json:"password" form:"password"`
+}
+
+// JwtLogin 은 POST /api/jwt 핸들러. 파싱 실패 시 에러 원문(본문 일부가 섞일 수 있음)을
+// 로그나 응답에 싣지 않고 고정 메시지만 돌려준다.
+func JwtLogin(c *fiber.Ctx) error {
+	c.Set("Cache-Control", "no-store")
+	var body jwtLoginBody
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code":    "error",
+			"message": "invalid request body",
+		})
+	}
+	return c.JSON(JwtAuth(c, body.Email, body.Password))
 }
 
 func JwtAuth(c *fiber.Ctx, email string, password string) map[string]interface{} {
