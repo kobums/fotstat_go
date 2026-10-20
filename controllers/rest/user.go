@@ -212,8 +212,13 @@ func (c *UserController) Insert(item *models.UserUpdate) {
 
     // 비로그인으로도 호출되는 가입 경로 — id 지정 삽입과 이메일 중복 가입을 막는다
     item.Id = 0
+    item.Email = strings.TrimSpace(item.Email)
     if err := checkSignupEmail(c, item.Email); err != nil {
         c.Error(err)
+        return
+    }
+    if item.Password == "" {
+        c.Error(errors.New("password is required"))
         return
     }
 
@@ -256,8 +261,13 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
     for i := 0; i < rows; i++ {
 
         (*item)[i].Id = 0
+        (*item)[i].Email = strings.TrimSpace((*item)[i].Email)
         if err := checkSignupEmail(c, (*item)[i].Email); err != nil {
             c.Error(err)
+            return
+        }
+        if (*item)[i].Password == "" {
+            c.Error(errors.New("password is required"))
             return
         }
 
@@ -286,17 +296,42 @@ func (c *UserController) Update(item *models.UserUpdate) {
         return
     }
 
-    if item.Password != "" {
-        hashed, err := jwt.GeneratePasswd(item.Password)
-        if err == nil {
-            item.Password = hashed
-        }
-    }
-    
-
 	conn := c.NewConnection()
 
 	manager := models.NewUserManager(conn)
+
+    // manager.Update 는 모든 컬럼을 덮어쓰므로, 비어 온 값은 현재 값으로 채워
+    // 비밀번호가 빈 문자열로 지워지는 것을 막고, 이메일 변경 시에는 가입과 같은
+    // 검증(빈 값·guest: 접두사·타 계정과 중복)을 적용한다.
+    current := manager.Get(item.Id)
+    if current == nil {
+        c.Error(errForbidden)
+        return
+    }
+    item.Email = strings.TrimSpace(item.Email)
+    if item.Email == "" {
+        item.Email = current.Email
+    } else if item.Email != current.Email {
+        if err := checkSignupEmail(c, item.Email); err != nil {
+            c.Error(err)
+            return
+        }
+    }
+    if item.Createddate == "" {
+        item.Createddate = current.Createddate
+    }
+
+    if item.Password != "" {
+        hashed, err := jwt.GeneratePasswd(item.Password)
+        if err != nil {
+            c.Error(errors.New("password update failed"))
+            return
+        }
+        item.Password = hashed
+    } else {
+        item.Password = current.Password
+    }
+
     err := manager.Update(item)
     if err != nil {
         c.Set("code", "error")    

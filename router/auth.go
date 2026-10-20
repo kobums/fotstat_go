@@ -29,7 +29,9 @@ var JwtAuthRequired = func(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	if c.Method() == "POST" && len(u.Path) >= 9 && u.Path[:9] == "/api/user" {
+	// 비로그인 가입은 POST /api/user 만 허용한다 (예전 접두사 비교는 /api/user/batch,
+	// /api/user/count 까지 무인증으로 열어 이메일 존재 여부 조회가 가능했다).
+	if c.Method() == "POST" && u.Path == "/api/user" {
 		return c.Next()
 	}
 
