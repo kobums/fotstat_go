@@ -96,7 +96,8 @@ fotstat_go/
 | Method | Path | 설명 |
 |---|---|---|
 | `POST` | `/api/user` | 회원가입 |
-| `GET` | `/api/jwt` | 로그인 (JWT 발급) |
+| `POST` | `/api/jwt` | 로그인 (JWT 발급) — 본문 `{"email","password"}` (JSON 또는 form) |
+| `GET` | `/api/jwt?email=&password=` | **Deprecated** — 구버전 iOS 앱 호환용, 신규 사용 금지 |
 
 ### Team
 
@@ -232,7 +233,7 @@ docker-compose logs -f backend
 `api_postman_collection.json`을 Postman에서 Import 후:
 
 1. `POST /api/user` — 회원가입
-2. `GET /api/jwt` — 로그인 → 응답 토큰이 `{{jwt_token}}`에 자동 저장
+2. `POST /api/jwt` — 로그인 → 응답 토큰이 `{{jwt_token}}`에 자동 저장
 3. 이후 모든 요청에 Bearer Token 자동 적용
 
 ---
