@@ -8,7 +8,6 @@ import (
 	"fotstat/models/record"
 
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -45,8 +44,8 @@ func (c *RecordController) injuryConflict(conn *models.Connection, quarter int, 
 	injuryManager := models.NewInjuryManager(conn)
 	cnt := injuryManager.Count([]interface{}{
 		models.Where{Column: "player", Value: player, Compare: "="},
-		models.Custom{Query: fmt.Sprintf("i_startdate < '%s'", matchdate)},
-		models.Custom{Query: fmt.Sprintf("(i_returndate is null or i_returndate >= '%s')", matchdate)},
+		models.Custom{Query: "i_startdate < ?", Params: []interface{}{matchdate}},
+		models.Custom{Query: "(i_returndate is null or i_returndate >= ?)", Params: []interface{}{matchdate}},
 	})
 
 	if cnt > 0 {
