@@ -2,6 +2,7 @@ package rest
 
 
 import (
+	"errors"
 	"fotstat/controllers"
 	"fotstat/global/jwt"
 	"fotstat/models"
@@ -11,6 +12,22 @@ import (
 
 type UserController struct {
 	controllers.Controller
+}
+
+// checkSignupEmail 은 가입 시 이메일이 비었거나, guest: 예약 접두사이거나,
+// 이미 사용 중이면 에러를 돌려준다.
+func checkSignupEmail(c *UserController, email string) error {
+    email = strings.TrimSpace(email)
+    if email == "" || strings.HasPrefix(email, "guest:") {
+        return errors.New("invalid email")
+    }
+    conn := c.NewConnection()
+    var args []interface{}
+    args = append(args, models.Where{Column: "email", Value: email, Compare: "="})
+    if models.NewUserManager(conn).GetWhere(args) != nil {
+        return errors.New("email already in use")
+    }
+    return nil
 }
 
 func (c *UserController) Read(id int64) {
@@ -192,9 +209,14 @@ func (c *UserController) Count() {
 }
 
 func (c *UserController) Insert(item *models.UserUpdate) {
-    
-    
-    
+
+    // 비로그인으로도 호출되는 가입 경로 — id 지정 삽입과 이메일 중복 가입을 막는다
+    item.Id = 0
+    if err := checkSignupEmail(c, item.Email); err != nil {
+        c.Error(err)
+        return
+    }
+
     if item.Password != "" {
         hashed, err := jwt.GeneratePasswd(item.Password)
         if err == nil {
@@ -232,7 +254,13 @@ func (c *UserController) Insertbatch(item *[]models.UserUpdate) {
 	manager := models.NewUserManager(conn)
 
     for i := 0; i < rows; i++ {
-        
+
+        (*item)[i].Id = 0
+        if err := checkSignupEmail(c, (*item)[i].Email); err != nil {
+            c.Error(err)
+            return
+        }
+
         if (*item)[i].Password != "" {
             hashed, err := jwt.GeneratePasswd((*item)[i].Password)
             if err == nil {
