@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 
+	"fotstat/global"
 	"fotstat/global/config"
 	"fotstat/global/log"
 	"fotstat/router"
@@ -59,10 +61,17 @@ func Http() {
 	// 로그(webdata/log)·임시파일(webdata/temp)은 UploadPath 아래에 있으므로
 	// 정적 공개 경로에서 제외한다.
 	// 정적 핸들러와 같은 정규화 경로(fasthttp URI.Path)로 검사해 "//", "../" 우회를 막는다.
+	// 또한 /webdata 아래는 업로드 이미지(허용 확장자)만 서빙한다 — .html/.svg/.js 등
+	// 브라우저가 렌더링·실행할 수 있는 파일, 그리고 certs/ 같은 비공개 파일 노출을 막는다.
 	app.Use(func(ctx *fiber.Ctx) error {
 		p := string(ctx.Context().URI().Path())
-		for _, blocked := range []string{"/webdata/log", "/webdata/temp"} {
+		for _, blocked := range []string{"/webdata/log", "/webdata/temp", "/webdata/certs"} {
 			if p == blocked || strings.HasPrefix(p, blocked+"/") {
+				return ctx.SendStatus(fiber.StatusNotFound)
+			}
+		}
+		if p == "/webdata" || strings.HasPrefix(p, "/webdata/") {
+			if !global.IsImageExtension(path.Ext(p)) {
 				return ctx.SendStatus(fiber.StatusNotFound)
 			}
 		}
@@ -70,7 +79,15 @@ func Http() {
 	})
 
 	// app.Static("/webdata", config.DocumentRoot)
-	app.Static("/webdata", config.UploadPath)
+	app.Static("/webdata", config.UploadPath, fiber.Static{
+		// 업로드 파일은 이미지로만 해석되도록 MIME 스니핑을 끄고, 혹시 렌더링되더라도
+		// 스크립트가 돌지 않게 sandbox CSP 를 건다.
+		ModifyResponse: func(ctx *fiber.Ctx) error {
+			ctx.Set("X-Content-Type-Options", "nosniff")
+			ctx.Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; sandbox")
+			return nil
+		},
+	})
 
 	router.SetRouter(app)
 
