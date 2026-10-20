@@ -41,6 +41,27 @@ var JwtAuthRequired = func(c *fiber.Ctx) error {
 	})
 }
 
+// jwtLoginBody 는 POST /api/jwt 본문. JSON 과 form(x-www-form-urlencoded,
+// multipart) 모두 받는다.
+type jwtLoginBody struct {
+	Email    string `json:"email" form:"email"`
+	Password string `json:"password" form:"password"`
+}
+
+// JwtLogin 은 POST /api/jwt 핸들러. 파싱 실패 시 에러 원문(본문 일부가 섞일 수 있음)을
+// 로그나 응답에 싣지 않고 고정 메시지만 돌려준다.
+func JwtLogin(c *fiber.Ctx) error {
+	c.Set("Cache-Control", "no-store")
+	var body jwtLoginBody
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code":    "error",
+			"message": "invalid request body",
+		})
+	}
+	return c.JSON(JwtAuth(c, body.Email, body.Password))
+}
+
 func JwtAuth(c *fiber.Ctx, email string, password string) map[string]interface{} {
 	// 소셜 로그인은 현재 User 모델에 ConnectId 컬럼이 없으므로 임시로 제외했습니다.
 	// 추후 DB 구조 확장이 필요합니다.
